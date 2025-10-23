@@ -5,7 +5,7 @@ const filePath = path.join(process.cwd(), 'src/data/state-districts.json');
 const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
 // Get all states
-export const getStates = (req, res) => {
+const getStates = (req, res) => {
   const states = jsonData.states.map((s) => ({
     id: s.id,
     name: s.name,
@@ -17,7 +17,7 @@ export const getStates = (req, res) => {
 };
 
 // Get districts for a given state (by id or name)
-export const getDistrictsByState = (req, res) => {
+const getDistrictsByState = (req, res) => {
   const { state } = req.params;
   const foundState = jsonData.states.find((s) => s.code.toLowerCase() === state.toLowerCase());
 
@@ -30,4 +30,10 @@ export const getDistrictsByState = (req, res) => {
     code: foundState.code,
     districts: foundState.districts,
   });
+};
+
+// Export functions using CommonJS
+module.exports = {
+  getStates,
+  getDistrictsByState,
 };
