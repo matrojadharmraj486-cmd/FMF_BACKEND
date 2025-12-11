@@ -11,7 +11,4 @@ router.post("/login", login);
 router.post("/verify-otp", verifyOtp);
 
 
-router.get("/state", authenticate, getStates);
-router.get("/state/:state", authenticate, getDistrictsByState);
-
 export default router;

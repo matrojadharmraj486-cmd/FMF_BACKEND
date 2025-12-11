@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import authRoutes from './routes/authRoutes.js';
+import stateRoutes from './routes/state.route.js';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/v1', stateRoutes);
 
 app.get('/health', (req, res) => {
   res.json({

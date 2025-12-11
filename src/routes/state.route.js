@@ -1,8 +1,5 @@
-const express = require('express');
-const {
-  getStates,
-  getDistrictsByState,
-} = require('../controllers/state.controller.js');
+import express from 'express';
+import { getStates, getDistrictsByState } from '../controller/state.controller.js';
 
 const router = express.Router();
 
@@ -12,4 +9,4 @@ router.get('/states', getStates);
 // Get districts by state code
 router.get('/districts/:state', getDistrictsByState);
 
-module.exports = router;
+export default router;

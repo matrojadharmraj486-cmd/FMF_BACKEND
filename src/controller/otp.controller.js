@@ -4,7 +4,7 @@ import { verifyToken } from "../utils/jwt.js";
 export const verifyOtp = async (req, res) => {
   try {
     const { otp } = req.body;
-
+console.log("otp", otp)
     const FIXED_OTP = "123456";
 
     if (!otp) {
