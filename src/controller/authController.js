@@ -46,6 +46,7 @@ export const register = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "User registered successfully.",
+      otpRequired: true,
       data: {
         id: user._id,
         name: user.name,
@@ -105,6 +106,7 @@ export const login = async (req, res) => {
     res.json({
       success: true,
       message: "Login successful.",
+      otpRequired: true,
       data: {
         id: user._id,
         name: user.name,
