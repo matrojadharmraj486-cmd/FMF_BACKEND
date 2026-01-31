@@ -1,126 +1,42 @@
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
 export const register = async (req, res) => {
-  try {
-    const { name, email, phone, password } = req.body;
+  const user = await User.create({
+    ...req.body,
+    isVerified: true
+  });
 
-    // 1. Required fields validation
-    if (!name || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name and password are required."
-      });
-    }
+  const token = generateToken(user._id);
 
-    if (!email && !phone) {
-      return res.status(400).json({
-        success: false,
-        message: "Either email or phone is required."
-      });
-    }
-
-    // 2. Check if user already exists (email or phone)
-    const existingUser = await User.findOne({
-      $or: [{ email }, { phone }]
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists with this email or phone."
-      });
-    }
-
-    // 3. Create new user
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      password
-    });
-
-    // 4. Generate JWT token
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully.",
-      otpRequired: true,
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        token
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error in registration.",
-      error: error.message
-    });
-  }
+  return successResponse(res, 201, "Registration successful", {
+    user,
+    token
+  });
 };
 
-
-
 export const login = async (req, res) => {
-  try {
-    const { email, phone, password } = req.body;
+  const { identifier, password } = req.body;
 
-    // At least one of email or phone must be provided
-    if (!email && !phone) {
-      return res.status(400).json({
-        success: false,
-        message: "Email or phone is required to login."
-      });
-    }
+  const user = await User.findOne({
+    $or: [{ email: identifier }, { mobileNumber: identifier }]
+  }).select("+password");
 
-    // Find user using email or phone
-    const user = await User.findOne({
-      $or: [{ email }, { phone }]
-    }).select("+password");
+  if (!user)
+    return errorResponse(res, 404, "User not found");
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found."
-      });
-    }
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch)
+    return errorResponse(res, 400, "Invalid password");
 
-    // Verify password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid password."
-      });
-    }
+  user.lastLogin = new Date();
+  await user.save();
 
-    // Generate token
-    const token = generateToken(user._id);
+  const token = generateToken(user._id);
 
-    res.json({
-      success: true,
-      message: "Login successful.",
-      otpRequired: true,
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        token
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error in login.",
-      error: error.message
-    });
-  }
+  return successResponse(res, 200, "Login successful", {
+    user,
+    token
+  });
 };
