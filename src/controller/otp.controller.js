@@ -1,55 +1,81 @@
 import Otp from "../models/Otp.js";
-import User from "../models/User.js";
-import { successResponse, errorResponse } from "../utils/response.js";
-
-const FIXED_OTP = "123456";
+import { generateOtp } from "../utils/genarateOtp.js";
+import { sendOtpEmail } from "../utils/sendEmail.js";
 
 export const sendOtp = async (req, res) => {
-  const { email, mobileNumber } = req.body;
-  const identifier = email || mobileNumber;
+  try {
+    const { email, mobileNumber } = req.body;
 
-  if (!identifier)
-    return errorResponse(res, 400, "Email or mobile required");
+    if (!email && !mobileNumber) {
+      return res.status(400).json({
+        status: 400,
+        message: "Email or mobile number is required"
+      });
+    }
 
-  const user = await User.findOne({
-    $or: [{ email: identifier }, { mobileNumber: identifier }]
-  });
+    let otp;
 
-  await Otp.deleteMany({ identifier });
+    if (mobileNumber) {
+      otp = "123456";
+    } else {
+      otp = generateOtp();
+      await sendOtpEmail(email, otp);
+    }
 
-  await Otp.create({
-    identifier,
-    otp: FIXED_OTP,
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000)
-  });
+    await Otp.deleteMany({ email, mobileNumber });
 
-  return successResponse(res, 200, "OTP sent successfully", {
-    identifier,
-    isUserExist: !!user,
-    sentOn: email ? "EMAIL" : "MOBILE"
-  });
+    await Otp.create({
+      email,
+      mobileNumber,
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    });
+
+    return res.json({
+      status: 200,
+      message: email
+        ? "OTP sent to email"
+        : "OTP generated for mobile",
+      data: {
+        isUserExist: false
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: error.message
+    });
+  }
 };
 
 export const verifyOtp = async (req, res) => {
-  const { identifier, otp } = req.body;
+  const { email, mobileNumber, otp } = req.body;
 
-  const otpDoc = await Otp.findOne({ identifier, otp });
-
-  if (!otpDoc)
-    return errorResponse(res, 400, "Invalid OTP");
-
-  if (otpDoc.expiresAt < new Date())
-    return errorResponse(res, 400, "OTP expired");
-
-  await Otp.deleteOne({ _id: otpDoc._id });
-
-  const user = await User.findOne({
-    $or: [{ email: identifier }, { mobileNumber: identifier }]
+  const record = await Otp.findOne({
+    otp,
+    isVerified: false,
+    expiresAt: { $gt: new Date() },
+    ...(email && { email }),
+    ...(mobileNumber && { mobileNumber })
   });
 
-  return successResponse(res, 200, "OTP verified successfully", {
-    identifier,
-    isUserExist: !!user,
-    nextStep: user ? "LOGIN" : "REGISTER"
+  if (!record) {
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid or expired OTP"
+    });
+  }
+
+  record.isVerified = true;
+  await record.save();
+
+  return res.json({
+    status: 200,
+    message: "OTP verified successfully",
+    data: {
+      isVerified: true
+    }
   });
 };
+
