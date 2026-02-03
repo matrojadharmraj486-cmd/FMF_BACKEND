@@ -8,14 +8,15 @@ const userSchema = new mongoose.Schema({
   mobileNumber: { type: String, unique: true, sparse: true },
   age: Number,
   role: { type: String, default: "App" },
-    state: {
-    id: mongoose.Schema.Types.ObjectId,
-    name: String
-  },
-  district: {
-    id: mongoose.Schema.Types.ObjectId,
-    name: String
-  },
+state: {
+  id: String,
+  name: String
+},
+district: {
+  id: String,
+  name: String
+}
+
   profileImg: String,
   cityId: mongoose.Schema.Types.ObjectId,
   password: { type: String, select: false },
