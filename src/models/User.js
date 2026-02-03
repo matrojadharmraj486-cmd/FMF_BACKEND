@@ -15,7 +15,7 @@ state: {
 district: {
   id: String,
   name: String
-}
+},
 
   profileImg: String,
   cityId: mongoose.Schema.Types.ObjectId,
