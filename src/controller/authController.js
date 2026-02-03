@@ -3,6 +3,19 @@ import { generateToken } from "../utils/jwt.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
 export const register = async (req, res) => {
+  const { email, mobileNumber } = req.body;
+
+  const existingUser = await User.findOne({
+    $or: [
+      { email },
+      { mobileNumber }
+    ]
+  });
+
+  if (existingUser) {
+    return errorResponse(res, 400, "User already exists with this email or mobile number");
+  }
+
   const user = await User.create({
     ...req.body,
     isVerified: true
@@ -16,15 +29,41 @@ export const register = async (req, res) => {
   });
 };
 
+
 export const login = async (req, res) => {
-  const { identifier, password } = req.body;
+  const { identifier, password, isVerified } = req.body;
 
   const user = await User.findOne({
-    $or: [{ email: identifier }, { mobileNumber: identifier }]
+    $or: [
+      { email: identifier },
+      { mobileNumber: identifier }
+    ]
   }).select("+password");
 
   if (!user)
     return errorResponse(res, 404, "User not found");
+
+  const isMobile = /^\d{10}$/.test(identifier);
+
+  // 📱 MOBILE LOGIN (OTP verified)
+  if (isMobile) {
+    if (!isVerified)
+      return errorResponse(res, 400, "OTP verification required");
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = generateToken(user._id);
+
+    return successResponse(res, 200, "Login successful (Mobile)", {
+      user,
+      token
+    });
+  }
+
+  // 📧 EMAIL LOGIN (Password required)
+  if (!password)
+    return errorResponse(res, 400, "Password is required for email login");
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch)
@@ -35,7 +74,7 @@ export const login = async (req, res) => {
 
   const token = generateToken(user._id);
 
-  return successResponse(res, 200, "Login successful", {
+  return successResponse(res, 200, "Login successful (Email)", {
     user,
     token
   });
