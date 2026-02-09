@@ -1,3 +1,7 @@
+import User from "../models/User.js";
+import Otp from "../models/Otp.js";
+import { successResponse } from "../utils/response.js";
+
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -14,5 +18,8 @@ export const forgotPassword = async (req, res) => {
     expiresAt: new Date(Date.now() + 5 * 60 * 1000)
   });
 
-  return successResponse(res, 200, "OTP sent to email");
+  return successResponse(res, 200, "OTP sent to email", {
+  email,
+  expiresIn: "5 minutes"
+});
 };

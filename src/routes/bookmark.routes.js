@@ -1,20 +1,18 @@
 import express from "express";
 import {
-  createBookmark,
-  updateBookmark,
+  addBookmark,
   getBookmarks,
-  addQuestionToBookmark
+  getBookmarkById,
+  removeBookmark
 } from "../controller/bookmark.js";
 
 import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.use(authenticate);
-
-router.post("/", createBookmark);
-router.put("/:id", updateBookmark);
-router.get("/", getBookmarks);
-router.post("/:id/add-question", addQuestionToBookmark);
+router.post("/add", authenticate, addBookmark);
+router.get("/", authenticate, getBookmarks);
+router.get("/:qid", authenticate, getBookmarkById);
+router.delete("/:qid", authenticate, removeBookmark);
 
 export default router;

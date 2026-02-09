@@ -1,3 +1,7 @@
+import User from "../models/User.js";
+import Otp from "../models/Otp.js";
+import { successResponse } from "../utils/response.js";
+
 export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
@@ -13,5 +17,7 @@ export const resetPassword = async (req, res) => {
 
   await Otp.deleteOne({ _id: otpDoc._id });
 
-  return successResponse(res, 200, "Password reset successful");
+  return successResponse(res, 200, "Password reset successful", {
+  email,
+});
 };

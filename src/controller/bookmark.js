@@ -1,57 +1,90 @@
-import Bookmark from "../models/BookMark";
+import Bookmark from "../models/BookMark.js";
+import { errorResponse } from "../utils/response.js";
+import { successResponse } from "../utils/response.js";
 
-/* Create */
-export const createBookmark = async (req, res) => {
-  const bookmark = await Bookmark.create({
-    userId: req.user._id,
-    name: req.body.name
-  });
+export const addBookmark = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const question = req.body.question;
 
-  return successResponse(res, 201, "Bookmark created", bookmark);
-};
+    let bookmark = await Bookmark.findOne({ user: userId });
 
-/* Update */
-export const updateBookmark = async (req, res) => {
-  const bookmark = await Bookmark.findByIdAndUpdate(
-    req.params.id,
-    { name: req.body.name },
-    { new: true }
-  );
+    if (!bookmark) {
+      bookmark = new Bookmark({
+        user: userId,
+        questions: [question]
+      });
+    } else {
+      const exists = bookmark.questions.find(
+        (q) => q.id === question.id
+      );
 
-  return successResponse(res, 200, "Bookmark updated", bookmark);
-};
+      if (exists) {
+        return errorResponse(res, 400, "Already bookmarked");
+      }
 
-export const getBookmarks = async (req, res) => {
-  const bookmarks = await Bookmark.find({
-    userId: req.user._id
-  });
+      bookmark.questions.push(question);
+    }
 
-  return successResponse(
-    res,
-    200,
-    "Bookmarks fetched",
-    bookmarks
-  );
-};
-
-export const addQuestionToBookmark = async (req, res) => {
-  const { questionId } = req.body;
-
-  const bookmark = await Bookmark.findById(req.params.id);
-
-  if (!bookmark)
-    return errorResponse(res, 404, "Bookmark not found");
-
-  if (!bookmark.questions.includes(questionId)) {
-    bookmark.questions.push(questionId);
     await bookmark.save();
+
+    return successResponse(res, 200, "Bookmark added", bookmark);
+
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
+  }
+};
+
+
+export const getBookmarkById = async (req, res) => {
+  const { qid } = req.params;
+
+  const bookmark = await Bookmark.findOne({ user: req.user.id });
+
+  if (!bookmark) {
+    return errorResponse(res, 404, "No bookmark found");
   }
 
-  return successResponse(
-    res,
-    200,
-    "Question added to bookmark",
-    bookmark
+  const question = bookmark.questions.find(
+    (q) => q.id === qid
   );
+
+  if (!question) {
+    return errorResponse(res, 404, "Question not found");
+  }
+
+  return successResponse(res, 200, "Question found", question);
 };
+
+
+export const getBookmarks = async (req, res) => {
+  const bookmark = await Bookmark.findOne({ user: req.user.id });
+
+  if (!bookmark) {
+    return successResponse(res, 200, "No bookmarks", []);
+  }
+
+  return successResponse(res, 200, "Bookmarks fetched", bookmark.questions);
+};
+
+
+export const removeBookmark = async (req, res) => {
+  const { qid } = req.params;
+
+  const bookmark = await Bookmark.findOne({ user: req.user.id });
+
+  if (!bookmark) {
+    return errorResponse(res, 404, "No bookmark found");
+  }
+
+  bookmark.questions = bookmark.questions.filter(
+    (q) => q.id !== qid
+  );
+
+  await bookmark.save();
+
+  return successResponse(res, 200, "Removed successfully");
+};
+
+
 

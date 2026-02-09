@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import stateRoutes from "./routes/state.route.js";
 import questionRoutes from "./routes/question.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import bookmarkRoutes from "./routes/bookmark.routes.js"
 
 
 const app = express();
@@ -20,5 +22,8 @@ app.use(cors());
 app.use("/api/auth", authRoutes);
 app.use("/api/v1", stateRoutes);
 app.use("/api", questionRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/bookmark", bookmarkRoutes)
+
 
 export default app;

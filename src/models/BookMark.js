@@ -1,19 +1,19 @@
 import mongoose from "mongoose";
 
 const bookmarkSchema = new mongoose.Schema({
-  userId: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    required: true
   },
-
-  name: String, 
 
   questions: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Question"
+      type: mongoose.Schema.Types.Mixed,
+      required: true
     }
   ]
+
 }, { timestamps: true });
 
 export default mongoose.model("Bookmark", bookmarkSchema);
