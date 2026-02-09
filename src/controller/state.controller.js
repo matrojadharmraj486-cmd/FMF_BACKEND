@@ -5,7 +5,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 const filePath = path.join(process.cwd(), 'src/data/state-districts.json');
 const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-// Get all states
+
 export const getStates = (req, res) => {
   const states = jsonData.states.map((s) => ({
     id: s.id,
@@ -23,7 +23,7 @@ export const getStates = (req, res) => {
   );
 };
 
-/* Get districts by state code */
+
 export const getDistrictsByState = (req, res) => {
   const { state } = req.params;
 
