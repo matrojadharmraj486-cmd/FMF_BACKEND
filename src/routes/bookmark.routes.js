@@ -4,7 +4,7 @@ import {
   updateBookmark,
   getBookmarks,
   addQuestionToBookmark
-} from "../controller/bookmark.controller.js";
+} from "../controller/bookmark.js";
 
 import { authenticate } from "../middleware/auth.js";
 
