@@ -1,16 +1,23 @@
 import mongoose from "mongoose";
 
 const bookmarkSchema = new mongoose.Schema({
+
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true
   },
 
+  name: {
+    type: String,
+    required: true
+  },
+
   questions: [
     {
-      type: mongoose.Schema.Types.Mixed,
-      required: true
+      id: String,
+      question_text: String,
+      sub_questions: Array
     }
   ]
 

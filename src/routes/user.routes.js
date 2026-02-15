@@ -1,9 +1,16 @@
 import express from "express";
-import { updateProfile } from "../controller/updateProfile.js";
 import { authenticate } from "../middleware/auth.js";
+import { upload } from "../middleware/upload.js";
+
+import { updateProfile } from "../controller/user.controller.js";
 
 const router = express.Router();
 
-router.put("/profile", authenticate, updateProfile);
+router.put(
+  "/profile",
+  authenticate,
+  upload.single("photo"),
+  updateProfile
+);
 
 export default router;

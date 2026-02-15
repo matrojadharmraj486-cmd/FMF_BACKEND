@@ -23,7 +23,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/v1", stateRoutes);
 app.use("/api", questionRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/bookmark", bookmarkRoutes)
+app.use("/api/bookmark", bookmarkRoutes);
+app.use("/uploads", express.static("uploads"));
 
 
 export default app;
