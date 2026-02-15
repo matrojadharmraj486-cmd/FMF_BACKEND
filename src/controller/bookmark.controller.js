@@ -1,4 +1,4 @@
-import Bookmark from "../models/Bookmark.js";
+import Bookmark from "../models/BookMark.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
 
