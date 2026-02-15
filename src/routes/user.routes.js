@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
 
-import { updateProfile } from "../controller/user.controller.js";
+import { updateProfile } from "../controller/updateProfile.js";
 
 const router = express.Router();
 
