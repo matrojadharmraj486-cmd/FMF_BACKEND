@@ -7,7 +7,9 @@ import {
   addQuestion,
   getOneCollection,
   checkStatus,
-  removeQuestion
+  removeQuestion,
+  updateCollection,
+  deleteCollection
 } from "../controller/bookmark.controller.js";
 
 const router = express.Router();
@@ -27,5 +29,9 @@ router.delete("/:collectionId/remove/:questionId",
   authenticate,
   removeQuestion
 );
+
+router.put("/:collectionId", authenticate, updateCollection);
+
+router.delete("/:collectionId", authenticate, deleteCollection);
 
 export default router;

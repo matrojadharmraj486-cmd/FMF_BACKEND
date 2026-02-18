@@ -99,3 +99,39 @@ export const removeQuestion = async (req, res) => {
 
   return successResponse(res, 200, "Removed");
 };
+
+export const updateCollection = async (req, res) => {
+
+  const { name } = req.body;
+
+  const bookmark = await Bookmark.findById(req.params.collectionId);
+
+  if (!bookmark)
+    return errorResponse(res, 404, "Collection not found");
+
+  if (bookmark.user.toString() !== req.user._id.toString())
+    return errorResponse(res, 403, "Unauthorized");
+
+  bookmark.name = name;
+
+  await bookmark.save();
+
+  return successResponse(res, 200, "Collection updated");
+};
+
+
+export const deleteCollection = async (req, res) => {
+
+  const bookmark = await Bookmark.findById(req.params.collectionId);
+
+  if (!bookmark)
+    return errorResponse(res, 404, "Collection not found");
+
+  if (bookmark.user.toString() !== req.user._id.toString())
+    return errorResponse(res, 403, "Unauthorized");
+
+  await bookmark.deleteOne();
+
+  return successResponse(res, 200, "Collection deleted");
+};
+
