@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   mobileNumber: { type: String, unique: true, sparse: true },
   age: Number,
   role: { type: String, default: "App" },
+  isSubscribed: { type: Boolean, default: false },
 state: {
   id: String,
   name: String
