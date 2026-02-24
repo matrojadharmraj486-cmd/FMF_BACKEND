@@ -14,9 +14,9 @@ export const listUsers = async (req, res) => {
 export const updateSubscription = async (req, res) => {
   try {
     const { id } = req.params;
-    const { isSubscribed } = req.body;
-    if (typeof isSubscribed !== "boolean")
-      return errorResponse(res, 400, "isSubscribed boolean required");
+    const { isSubscribed } = true;
+    // if (typeof isSubscribed !== "boolean")
+    //   return errorResponse(res, 400, "isSubscribed boolean required");
     const user = await User.findByIdAndUpdate(id, { isSubscribed }, { new: true });
     if (!user) return errorResponse(res, 404, "User not found");
     return successResponse(res, 200, "Subscription updated", { id: user._id, isSubscribed: user.isSubscribed });

@@ -12,6 +12,7 @@ import adminQuestionRoutes from "./routes/admin.question.routes.js";
 import adminUserRoutes from "./routes/admin.user.routes.js";
 import adminBannerRoutes from "./routes/admin.banner.routes.js";
 import qotdRoutes from "./routes/qotd.routes.js";
+import { adminLogin } from "./controllers/admin.auth.controller.js";
 
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/api/admin", adminQuestionRoutes);
 app.use("/api/admin", adminUserRoutes);
 app.use("/api/admin", adminBannerRoutes);
 app.use("/uploads", express.static("uploads"));
+app.use("/admin", adminLogin)
 
 
 export default app;
