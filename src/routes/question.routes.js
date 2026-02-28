@@ -1,9 +1,9 @@
 import express from "express";
-import { getQuestions } from "../controllers/admin.question.controller.js";
+import { getStructuredQuestions } from "../controllers/structured.question.controller.js";
 
 const router = express.Router();
 
-// Public: supports ?year=&part=
-router.get("/questions", getQuestions);
+// Public: returns exact shape like data/questions.json
+router.get("/questions", getStructuredQuestions);
 
 export default router;

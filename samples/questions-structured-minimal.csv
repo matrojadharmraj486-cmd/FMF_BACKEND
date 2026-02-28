@@ -1,0 +1,4 @@
+groupId,question_text,sub_part,sub_text,answerType,answerText,answerImage
+Q100,"Parent question about management plan",a,"List initial assessment steps",text,"History; Vitals; Basic labs",
+Q100,"Parent question about management plan",b,"Provide treatment outline",text,"Hydration; Antiemetics; Nutritional support",
+Q200,"Imaging interpretation case",a,"Explain the diagram",image,,"sample-diagram.png"

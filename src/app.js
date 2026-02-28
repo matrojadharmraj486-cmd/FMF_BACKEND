@@ -14,6 +14,7 @@ import adminBannerRoutes from "./routes/admin.banner.routes.js";
 import qotdRoutes from "./routes/qotd.routes.js";
 import adminAuthRoutes from "./routes/admin.auth.routes.js";
 import bannersRoutes from "./routes/banners.routes.js";
+import adminStructuredRoutes from "./routes/admin.structured.routes.js";
 
 
 const app = express();
@@ -39,6 +40,7 @@ app.use("/api/admin", adminQuestionRoutes);
 app.use("/api/admin", adminUserRoutes);
 app.use("/api/admin", adminBannerRoutes);
 app.use("/api/admin", adminAuthRoutes);
+app.use("/api/admin", adminStructuredRoutes);
 app.use("/uploads", express.static("uploads"));
 
 
