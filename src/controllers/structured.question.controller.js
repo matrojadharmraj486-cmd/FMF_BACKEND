@@ -27,6 +27,7 @@ export const getStructuredQuestions = async (req, res) => {
     const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
     const data = docs.map(d => {
       const obj = d.toObject();
+      obj.id = obj.id || String(obj._id);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
@@ -103,8 +104,26 @@ export const uploadStructuredExcel = async (req, res) => {
 
 export const adminListStructuredQuestions = async (req, res) => {
   try {
-    const docs = await StructuredQuestion.find({}).sort({ createdAt: -1 });
-    return successResponse(res, 200, "Admin questions fetched", docs);
+    const { year, part } = req.query;
+    const filter = {};
+    if (year) filter.year = Number(year);
+    if (part) {
+      const p = normalizePart(part) || part;
+      filter.part = p;
+    }
+    const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
+    const data = docs.map(d => {
+      const obj = d.toObject();
+      obj.id = obj.id || String(obj._id);
+      obj.sub_questions = (obj.sub_questions || []).map(sq => {
+        if (sq.answerType === "image" && sq.answerImage) {
+          sq.answerImage = toAbsolute(sq.answerImage, req);
+        }
+        return sq;
+      });
+      return obj;
+    });
+    return successResponse(res, 200, "Admin questions fetched", data);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
@@ -168,6 +187,17 @@ export const deleteStructuredSub = async (req, res) => {
     sub.deleteOne();
     await doc.save();
     return successResponse(res, 200, "Sub-question deleted");
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const uploadStructuredSubImage = async (req, res) => {
+  try {
+    if (!req.file) return errorResponse(res, 400, "image file required");
+    const url = `/uploads/${req.file.filename}`;
+    const absolute = toAbsolute(url, req);
+    return successResponse(res, 200, "Image uploaded", { url: absolute });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }

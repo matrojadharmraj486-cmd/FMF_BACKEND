@@ -7,7 +7,8 @@ import {
   updateStructuredQuestion,
   deleteStructuredQuestion,
   updateStructuredSub,
-  deleteStructuredSub
+  deleteStructuredSub,
+  uploadStructuredSubImage
 } from "../controllers/structured.question.controller.js";
 
 const router = express.Router();
@@ -18,6 +19,6 @@ router.put("/questions-structured/:id", adminAuthenticate, updateStructuredQuest
 router.delete("/questions-structured/:id", adminAuthenticate, deleteStructuredQuestion);
 router.put("/questions-structured/:id/sub/:subId", adminAuthenticate, updateStructuredSub);
 router.delete("/questions-structured/:id/sub/:subId", adminAuthenticate, deleteStructuredSub);
+router.post("/questions-structured/:id/sub/:subId/image", adminAuthenticate, upload.single("image"), uploadStructuredSubImage);
 
 export default router;
-

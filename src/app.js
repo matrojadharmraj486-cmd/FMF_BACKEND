@@ -27,7 +27,7 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
-app.use(cors());
+app.use(cors({ origin: "http://localhost:5173" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/v1", stateRoutes);
