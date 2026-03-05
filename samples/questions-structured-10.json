@@ -1,0 +1,178 @@
+[
+  {
+    "id": "Q100",
+    "year": 2026,
+    "part": "Part 1",
+    "question_text": "Basics of clinical assessment for a patient with persistent vomiting",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "List initial assessment steps",
+        "answerType": "text",
+        "answer": ["History", "Vitals", "Hydration status", "Electrolytes"]
+      },
+      {
+        "part": "b",
+        "text": "Mention investigations to order",
+        "answerType": "text",
+        "answer": ["CBC", "Serum electrolytes", "Blood sugar", "TSH", "Urine ketones", "USG"]
+      }
+    ]
+  },
+  {
+    "id": "Q101",
+    "year": 2026,
+    "part": "Part 1",
+    "question_text": "Explain the provided diagram related to fluid balance",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Interpretation of diagram",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/sample-diagram-1.png"
+      }
+    ]
+  },
+  {
+    "id": "Q102",
+    "year": 2026,
+    "part": "Part 1",
+    "question_text": "Management plan for hyperemesis gravidarum",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Outline conservative management",
+        "answerType": "text",
+        "answer": ["Diet modification", "Small frequent meals", "Oral rehydration", "Thiamine if severe"]
+      },
+      {
+        "part": "b",
+        "text": "Show medication chart image",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/medication-chart.png"
+      }
+    ]
+  },
+  {
+    "id": "Q103",
+    "year": 2026,
+    "part": "Part 1",
+    "question_text": "Indications for admission in severe vomiting",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "State indications",
+        "answerType": "text",
+        "answer": ["Persistent dehydration", "Electrolyte imbalance", "Weight loss >5%", "Complications suspected"]
+      }
+    ]
+  },
+  {
+    "id": "Q104",
+    "year": 2026,
+    "part": "Part 2",
+    "question_text": "Differential diagnosis of nausea and vomiting",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Medical causes",
+        "answerType": "text",
+        "answer": ["Gastritis", "Hepatitis", "Pancreatitis", "Peptic ulcer"]
+      },
+      {
+        "part": "b",
+        "text": "Endocrine and metabolic",
+        "answerType": "text",
+        "answer": ["DKA", "Hyperthyroidism"]
+      },
+      {
+        "part": "c",
+        "text": "Gynecologic causes",
+        "answerType": "text",
+        "answer": ["Twisted ovarian tumor", "Red degeneration of fibroid"]
+      }
+    ]
+  },
+  {
+    "id": "Q105",
+    "year": 2026,
+    "part": "Part 2",
+    "question_text": "Show the chart of electrolyte correction",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Electrolyte correction chart",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/electrolyte-chart.png"
+      }
+    ]
+  },
+  {
+    "id": "Q106",
+    "year": 2027,
+    "part": "Part 1",
+    "question_text": "First trimester vomiting counseling points",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Counseling content",
+        "answerType": "text",
+        "answer": ["Reassurance", "Diet advice", "Hydration", "Follow-up plan"]
+      },
+      {
+        "part": "b",
+        "text": "Provide visual flowchart",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/counsel-flowchart.png"
+      }
+    ]
+  },
+  {
+    "id": "Q107",
+    "year": 2027,
+    "part": "Part 1",
+    "question_text": "List antiemetic options and dosing",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Antiemetic options",
+        "answerType": "text",
+        "answer": ["Doxylamine + Pyridoxine", "Promethazine", "Cyclizine", "Ondansetron", "Metoclopramide"]
+      }
+    ]
+  },
+  {
+    "id": "Q108",
+    "year": 2027,
+    "part": "Part 2",
+    "question_text": "Demonstrate hydration strategy (visual)",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Hydration strategy",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/hydration-visual.png"
+      }
+    ]
+  },
+  {
+    "id": "Q109",
+    "year": 2027,
+    "part": "Part 2",
+    "question_text": "When to escalate care",
+    "sub_questions": [
+      {
+        "part": "a",
+        "text": "Criteria",
+        "answerType": "text",
+        "answer": ["Refractory symptoms", "Severe biochemical derangement", "Suspected molar pregnancy"]
+      },
+      {
+        "part": "b",
+        "text": "Referral note example",
+        "answerType": "image",
+        "answerImage": "https://fmf-backend.onrender.com/uploads/referral-note.png"
+      }
+    ]
+  }
+]

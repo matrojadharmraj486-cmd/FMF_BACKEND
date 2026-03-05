@@ -1,0 +1,16 @@
+groupId,question_text,sub_part,sub_text,answerType,answerText,answerImage
+Q301,"A 24-year-old primigravida at 10 weeks presents with nausea.",a,"List two likely causes.",text,"Pregnancy-related nausea; Gastritis",
+Q301,"A 24-year-old primigravida at 10 weeks presents with nausea.",b,"Mention first-line management.",text,"Diet modification; Oral rehydration; Doxylamine-pyridoxine",
+Q302,"A 28-year-old woman presents with first-trimester bleeding.",a,"State three differential diagnoses.",text,"Threatened abortion; Ectopic pregnancy; Molar pregnancy",
+Q302,"A 28-year-old woman presents with first-trimester bleeding.",b,"Write initial investigations.",text,"CBC; Blood group and Rh; Beta-hCG; Transvaginal USG",
+Q303,"A term primigravida is in prolonged second stage of labor.",a,"Give two indications for instrumental delivery.",text,"Maternal exhaustion; Non-reassuring fetal heart rate",
+Q303,"A term primigravida is in prolonged second stage of labor.",b,"Name instruments used.",text,"Vacuum extractor; Forceps",
+Q304,"A 32-week multigravida has hemoglobin 8 g/dL.",a,"Classify severity of anemia in pregnancy.",text,"Moderate anemia",
+Q304,"A 32-week multigravida has hemoglobin 8 g/dL.",b,"Outline management plan.",text,"Iron studies; Oral/IV iron; Dietary counseling; Deworming if indicated",
+Q305,"A couple has infertility after 2 years of marriage.",a,"Define primary infertility.",text,"Failure to conceive after 12 months of regular unprotected intercourse",
+Q305,"A couple has infertility after 2 years of marriage.",b,"List initial workup for both partners.",text,"Ovulation assessment; Pelvic USG; Semen analysis; TSH and prolactin",
+Q306,"A newborn is delivered in a community health center.",a,"List essential newborn care steps.",text,"Drying and warmth; Early breastfeeding; Clean cord care; Vitamin K",
+Q307,"A child presents with fever, cough, and fast breathing.",a,"State IMNCI danger signs to check.",text,"Unable to drink; Convulsions; Lethargy; Chest indrawing",
+Q308,"A woman has white vaginal discharge and itching.",a,"Mention likely syndromic diagnosis.",text,"Vaginal discharge syndrome",
+Q309,"A postpartum woman has heavy bleeding after delivery.",a,"List immediate PPH management steps.",text,"Call for help; Uterine massage; Oxytocin; IV fluids; Evaluate 4 Ts",
+Q310,"Interpret this fetal monitoring strip.",a,"Comment on CTG image findings.",image,,"sample-ctg-strip.png"
