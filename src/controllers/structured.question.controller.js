@@ -69,6 +69,108 @@ export const getStructuredQuestions = async (req, res) => {
   }
 };
 
+export const createStructuredQuestion = async (req, res) => {
+  try {
+    const { year, part, question_text, sub_questions, id } = req.body || {};
+
+    if (year === undefined || year === null || year === "") {
+      return errorResponse(res, 400, "year required");
+    }
+    const parsedYear = Number(year);
+    if (!Number.isFinite(parsedYear)) {
+      return errorResponse(res, 400, "year must be a number");
+    }
+
+    if (!part || !String(part).trim()) {
+      return errorResponse(res, 400, "part required");
+    }
+    const parsedPart = normalizePart(part);
+    if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
+      return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
+    }
+
+    if (!question_text || !String(question_text).trim()) {
+      return errorResponse(res, 400, "question_text required");
+    }
+
+    if (!Array.isArray(sub_questions) || sub_questions.length < 1) {
+      return errorResponse(res, 400, "sub_questions required with at least 1 item");
+    }
+
+    const normalizedSubs = [];
+    for (let i = 0; i < sub_questions.length; i++) {
+      const sq = sub_questions[i] || {};
+      const row = i + 1;
+
+      const sqPart = String(sq.part || "").trim();
+      const sqText = String(sq.text || "").trim();
+      const rawType = String(sq.answerType || "").trim().toLowerCase();
+
+      if (!sqPart || !sqText || !rawType) {
+        return errorResponse(res, 400, `sub_questions[${row}] part, text, answerType required`);
+      }
+      if (!["text", "image"].includes(rawType)) {
+        return errorResponse(res, 400, `sub_questions[${row}] answerType must be 'text' or 'image'`);
+      }
+
+      if (rawType === "text") {
+        if (!Array.isArray(sq.answer) || sq.answer.length === 0) {
+          return errorResponse(res, 400, `sub_questions[${row}] answer array required for answerType=text`);
+        }
+        const ans = sq.answer.map(a => String(a || "").trim()).filter(Boolean);
+        if (!ans.length) {
+          return errorResponse(res, 400, `sub_questions[${row}] answer array must contain non-empty values`);
+        }
+        normalizedSubs.push({
+          part: sqPart,
+          text: sqText,
+          answerType: "text",
+          answer: ans
+        });
+      } else {
+        const img = String(sq.answerImage || "").trim();
+        if (!img) {
+          return errorResponse(res, 400, `sub_questions[${row}] answerImage required for answerType=image`);
+        }
+        normalizedSubs.push({
+          part: sqPart,
+          text: sqText,
+          answerType: "image",
+          answer: [],
+          answerImage: (img.startsWith("http") || img.startsWith("/uploads/")) ? img : `/uploads/${img}`
+        });
+      }
+    }
+
+    const payload = {
+      year: parsedYear,
+      part: parsedPart,
+      question_text: String(question_text).trim(),
+      sub_questions: normalizedSubs
+    };
+    if (id !== undefined && id !== null && String(id).trim()) {
+      payload.id = String(id).trim();
+    }
+
+    const created = await StructuredQuestion.create(payload);
+    const obj = created.toObject();
+    obj.id = obj.id || String(obj._id);
+    obj.sub_questions = (obj.sub_questions || []).map(sq => {
+      if (sq.answerType === "image" && sq.answerImage) {
+        sq.answerImage = toAbsolute(sq.answerImage, req);
+      }
+      return sq;
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: obj
+    });
+  } catch (e) {
+    return errorResponse(res, 500, e.message || "Internal server error");
+  }
+};
+
 export const uploadStructuredExcel = async (req, res) => {
   try {
     if (!req.file) return errorResponse(res, 400, "file required");

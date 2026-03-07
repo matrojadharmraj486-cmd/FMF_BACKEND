@@ -2,6 +2,7 @@ import express from "express";
 import { adminAuthenticate } from "../middleware/adminAuth.js";
 import { upload } from "../middleware/upload.js";
 import {
+  createStructuredQuestion,
   uploadStructuredExcel,
   adminListStructuredQuestions,
   updateStructuredQuestion,
@@ -13,6 +14,7 @@ import {
 
 const router = express.Router();
 
+router.post("/questions-structured", adminAuthenticate, createStructuredQuestion);
 router.post("/questions-structured/upload", adminAuthenticate, upload.single("file"), uploadStructuredExcel);
 router.get("/questions-structured", adminAuthenticate, adminListStructuredQuestions);
 router.put("/questions-structured/:id", adminAuthenticate, updateStructuredQuestion);
