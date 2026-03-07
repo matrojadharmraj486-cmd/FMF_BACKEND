@@ -15,6 +15,30 @@ const normalizePart = (raw) => {
   return null;
 };
 
+const normalizeHeader = (key) =>
+  String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const pickValue = (row, aliases) => {
+  const entries = Object.entries(row || {});
+  for (const alias of aliases) {
+    const wanted = normalizeHeader(alias);
+    for (const [k, v] of entries) {
+      if (normalizeHeader(k) === wanted) return v;
+    }
+  }
+  return "";
+};
+
+const parseSubPartFromToken = (token, fallback = "a") => {
+  const s = String(token || "").trim();
+  if (!s) return fallback;
+  const m = s.match(/(\d+)$/);
+  if (!m) return fallback;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return String.fromCharCode(96 + n);
+};
+
 export const getStructuredQuestions = async (req, res) => {
   try {
     const { year, part } = req.query;
@@ -55,26 +79,53 @@ export const uploadStructuredExcel = async (req, res) => {
     const ws = wb.Sheets[wsName];
     const rows = xlsx.utils.sheet_to_json(ws, { defval: "" });
     const headerKeys = rows.length ? Object.keys(rows[0]) : [];
+    const normalizedHeaders = new Set(headerKeys.map(normalizeHeader));
+    const aliases = {
+      groupId: ["groupId", "group_id", "group", "question_id", "questionid", "qid", "id"],
+      year: ["year", "exam_year", "session_year"],
+      part: ["part", "paper_part", "module_part"],
+      questionText: ["question_text", "questionText", "question", "stem", "case_scenario", "clinical_scenario", "main_question_text"],
+      mainQuestionAnswer: ["main_question_answer"],
+      subPart: ["sub_part", "subPart", "subquestion_part", "part_label", "sub_q_part", "sub_question_no"],
+      subText: ["sub_text", "subText", "sub_question", "subQuestion", "sub_question_text", "medical_reference", "reference_text", "reference", "sub_question_text"],
+      answerType: ["answerType", "answer_type", "type", "response_type", "format", "question_type_1", "question_type"],
+      answerText: ["answerText", "answer_text", "answer", "model_answer", "response", "text_answer", "sub_question_answer"],
+      answerImage: ["answerImage", "answer_image", "image", "image_url", "imageurl", "url", "answer_media"]
+    };
     let docs = [];
     const partNormalized = normalizePart(overridePart) || overridePart;
     const parseNumberToLetter = (n) => {
       const i = parseInt(n, 10);
       return String.fromCharCode(96 + (isNaN(i) ? 1 : i));
     };
-    if (rows.length && (headerKeys.includes("question_text") || headerKeys.includes("sub_text"))) {
+    const hasStructuredHeaders =
+      rows.length &&
+      (
+        aliases.questionText.some((k) => normalizedHeaders.has(normalizeHeader(k))) ||
+        aliases.subText.some((k) => normalizedHeaders.has(normalizeHeader(k)))
+      );
+
+    if (hasStructuredHeaders) {
       if (!rows.length) return errorResponse(res, 400, "file is empty");
       const groups = new Map();
       for (const r of rows) {
-        const groupId = String(r.groupId || r.id || "").trim();
-        const year = overrideYear ?? Number(r.year);
-        const partCandidate = partNormalized ?? (normalizePart(r.part) || String(r.part || "").trim());
+        const groupId = String(pickValue(r, aliases.groupId) || "").trim();
+        const year = (overrideYear ?? Number(pickValue(r, aliases.year))) || new Date().getFullYear();
+        const rawPart = pickValue(r, aliases.part);
+        const partCandidate = partNormalized ?? (normalizePart(rawPart) || String(rawPart || "").trim() || "Part 1");
         const part = normalizePart(partCandidate) || partCandidate;
-        const question_text = String(r.question_text || r.questionText || "").trim();
-        const sub_part = String(r.sub_part || r.subPart || "").trim();
-        const sub_text = String(r.sub_text || r.subText || "").trim();
-        const answerType = String(r.answerType || "text").trim().toLowerCase();
-        const answerText = String(r.answerText || "").trim();
-        const answerImage = String(r.answerImage || "").trim();
+        const question_text = String(pickValue(r, aliases.questionText) || "").trim();
+        const mainQuestionAnswer = String(pickValue(r, aliases.mainQuestionAnswer) || "").trim();
+        const subPartRaw = String(pickValue(r, aliases.subPart) || "").trim();
+        const subTextRaw = String(pickValue(r, aliases.subText) || "").trim();
+        const rawAnswerType = String(pickValue(r, aliases.answerType) || "text").trim().toLowerCase();
+        const answerType = ["image", "img", "photo", "figure"].includes(rawAnswerType) ? "image" : "text";
+        let answerText = String(pickValue(r, aliases.answerText) || "").trim();
+        const answerImage = String(pickValue(r, aliases.answerImage) || "").trim();
+        const isDirectRow = !subPartRaw && !subTextRaw;
+        const sub_part = isDirectRow ? "a" : parseSubPartFromToken(subPartRaw, "a");
+        const sub_text = isDirectRow ? question_text : subTextRaw;
+        if (isDirectRow && !answerText && mainQuestionAnswer) answerText = mainQuestionAnswer;
         if (!year || !question_text || !sub_part || !sub_text)
           return errorResponse(res, 400, "year, part, question_text, sub_part, sub_text required");
         if (!["Part 1", "Part 2"].includes(part))
