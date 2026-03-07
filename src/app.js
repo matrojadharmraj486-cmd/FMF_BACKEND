@@ -27,7 +27,7 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ origin: "https://fmf-backend.onrender.com" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/v1", stateRoutes);
