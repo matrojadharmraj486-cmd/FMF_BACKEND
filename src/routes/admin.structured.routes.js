@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.post("/questions-structured", adminAuthenticate, createStructuredQuestion);
 router.post("/questions-structured/upload", adminAuthenticate, upload.single("file"), uploadStructuredExcel);
-router.get("/questions-structured", adminAuthenticate, adminListStructuredQuestions);
+router.get("/questions-structured", adminListStructuredQuestions);
 router.put("/questions-structured/:id", adminAuthenticate, updateStructuredQuestion);
 router.delete("/questions-structured/:id", adminAuthenticate, deleteStructuredQuestion);
 router.put("/questions-structured/:id/sub/:subId", adminAuthenticate, updateStructuredSub);
