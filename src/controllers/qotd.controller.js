@@ -27,8 +27,12 @@ export const upsertQotd = async (req, res) => {
       if (!answer) return res.status(400).json({ status: 400, message: "answer required for text type" });
       payload.answerText = sanitizeHTML(answer);
     } else {
-      const url = req.file ? `/uploads/${req.file.filename}` : undefined;
-      if (!url) return res.status(400).json({ status: 400, message: "answerImage file required for image type" });
+      const url = req.file ? `/uploads/${req.file.filename}` : (req.body.answerImageUrl || "").trim();
+      if (!url)
+        return res.status(400).json({
+          status: 400,
+          message: "answerImageUrl or answerImage file required for image type"
+        });
       payload.answerImage = url;
     }
 
@@ -46,10 +50,7 @@ export const upsertQotd = async (req, res) => {
       question: doc.question,
       answerType: doc.answerType,
       answer: doc.answerType === "text" ? doc.answerText : undefined,
-      answerImage: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      date: doc.date
+      answerImageUrl: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined
     });
   } catch (e) {
     return res.status(500).json({ status: 500, message: e.message });
@@ -66,10 +67,7 @@ export const getActiveQotd = async (req, res) => {
         question: null,
         answerType: null,
         answer: null,
-        answerImage: null,
-        createdAt: null,
-        updatedAt: null,
-        date: null
+        answerImageUrl: null
       });
     }
     return res.status(200).json({
@@ -78,10 +76,7 @@ export const getActiveQotd = async (req, res) => {
       question: doc.question,
       answerType: doc.answerType,
       answer: doc.answerType === "text" ? doc.answerText : undefined,
-      answerImage: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      date: doc.date
+      answerImageUrl: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined
     });
   } catch (e) {
     return res.status(500).json({ status: 500, message: e.message });
@@ -106,8 +101,13 @@ export const updateQotd = async (req, res) => {
       doc.answerText = sanitizeHTML(answer);
       doc.answerImage = undefined;
     } else {
-      if (!req.file) return res.status(400).json({ status: 400, message: "answerImage file required for image type" });
-      doc.answerImage = `/uploads/${req.file.filename}`;
+      const url = req.file ? `/uploads/${req.file.filename}` : (req.body.answerImageUrl || "").trim();
+      if (!url)
+        return res.status(400).json({
+          status: 400,
+          message: "answerImageUrl or answerImage file required for image type"
+        });
+      doc.answerImage = url;
       doc.answerText = undefined;
     }
     await doc.save();
@@ -117,10 +117,7 @@ export const updateQotd = async (req, res) => {
       question: doc.question,
       answerType: doc.answerType,
       answer: doc.answerType === "text" ? doc.answerText : undefined,
-      answerImage: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      date: doc.date
+      answerImageUrl: doc.answerType === "image" ? toAbsolute(doc.answerImage, req) : undefined
     });
   } catch (e) {
     return res.status(500).json({ status: 500, message: e.message });
