@@ -39,6 +39,16 @@ const parseSubPartFromToken = (token, fallback = "a") => {
   return String.fromCharCode(96 + n);
 };
 
+const parseBoolean = (value) => {
+  if (value === true || value === false) return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (v === "true") return true;
+    if (v === "false") return false;
+  }
+  return undefined;
+};
+
 export const getStructuredQuestions = async (req, res) => {
   try {
     const { year, part } = req.query;
@@ -71,7 +81,7 @@ export const getStructuredQuestions = async (req, res) => {
 
 export const createStructuredQuestion = async (req, res) => {
   try {
-    const { year, part, question_text, sub_questions, id } = req.body || {};
+    const { year, part, question_text, sub_questions, id, QOTD } = req.body || {};
 
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
@@ -150,6 +160,13 @@ export const createStructuredQuestion = async (req, res) => {
     };
     if (id !== undefined && id !== null && String(id).trim()) {
       payload.id = String(id).trim();
+    }
+    if (QOTD !== undefined) {
+      const parsedQotd = parseBoolean(QOTD);
+      if (parsedQotd === undefined) {
+        return errorResponse(res, 400, "QOTD must be boolean");
+      }
+      payload.QOTD = parsedQotd;
     }
 
     const created = await StructuredQuestion.create(payload);
@@ -381,13 +398,65 @@ export const adminListStructuredQuestions = async (req, res) => {
   }
 };
 
+export const getStructuredQotdQuestions = async (req, res) => {
+  try {
+    const docs = await StructuredQuestion.find({ QOTD: true }).sort({ year: -1, part: 1, createdAt: -1 });
+    const data = docs.map(d => {
+      const obj = d.toObject();
+      obj.id = obj.id || String(obj._id);
+      obj.sub_questions = (obj.sub_questions || []).map(sq => {
+        if (sq.answerType === "image" && sq.answerImage) {
+          sq.answerImage = toAbsolute(sq.answerImage, req);
+        }
+        return sq;
+      });
+      return obj;
+    });
+    return successResponse(res, 200, "QOTD questions fetched", {
+      total: data.length,
+      questions: data
+    });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const updateStructuredQuestion = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(payload, "QOTD")) {
+      const parsedQotd = parseBoolean(payload.QOTD);
+      if (parsedQotd === undefined) {
+        return errorResponse(res, 400, "QOTD must be boolean");
+      }
+      payload.QOTD = parsedQotd;
+    }
     const doc = await StructuredQuestion.findByIdAndUpdate(id, payload, { new: true });
     if (!doc) return errorResponse(res, 404, "Question not found");
     return successResponse(res, 200, "Question updated", doc);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const clearStructuredQotdFlags = async (req, res) => {
+  try {
+    const result = await StructuredQuestion.updateMany({ QOTD: true }, { $set: { QOTD: false } });
+    return successResponse(res, 200, "QOTD flags cleared", { modified: result.modifiedCount || 0 });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const setActiveStructuredQotd = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const exists = await StructuredQuestion.findById(id);
+    if (!exists) return errorResponse(res, 404, "Question not found");
+    await StructuredQuestion.updateMany({ QOTD: true }, { $set: { QOTD: false } });
+    const doc = await StructuredQuestion.findByIdAndUpdate(id, { QOTD: true }, { new: true });
+    return successResponse(res, 200, "QOTD set", doc);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }

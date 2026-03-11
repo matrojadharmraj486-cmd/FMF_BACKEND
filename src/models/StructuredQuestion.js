@@ -13,8 +13,8 @@ const structuredQuestionSchema = new mongoose.Schema({
   year: { type: Number, required: true },
   part: { type: String, enum: ["Part 1", "Part 2"], required: true },
   question_text: { type: String, required: true },
-  sub_questions: [subQuestionSchema]
+  sub_questions: [subQuestionSchema],
+  QOTD: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.model("StructuredQuestion", structuredQuestionSchema);
-

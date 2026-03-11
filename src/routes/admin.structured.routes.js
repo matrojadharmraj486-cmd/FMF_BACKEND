@@ -6,6 +6,8 @@ import {
   uploadStructuredExcel,
   adminListStructuredQuestions,
   updateStructuredQuestion,
+  clearStructuredQotdFlags,
+  setActiveStructuredQotd,
   deleteStructuredQuestion,
   updateStructuredSub,
   deleteStructuredSub,
@@ -18,6 +20,8 @@ router.post("/questions-structured", adminAuthenticate, createStructuredQuestion
 router.post("/questions-structured/upload", adminAuthenticate, upload.single("file"), uploadStructuredExcel);
 router.get("/questions-structured", adminListStructuredQuestions);
 router.put("/questions-structured/:id", adminAuthenticate, updateStructuredQuestion);
+router.post("/questions-structured/qotd/clear", adminAuthenticate, clearStructuredQotdFlags);
+router.post("/questions-structured/qotd/active/:id", adminAuthenticate, setActiveStructuredQotd);
 router.delete("/questions-structured/:id", adminAuthenticate, deleteStructuredQuestion);
 router.put("/questions-structured/:id/sub/:subId", adminAuthenticate, updateStructuredSub);
 router.delete("/questions-structured/:id/sub/:subId", adminAuthenticate, deleteStructuredSub);
