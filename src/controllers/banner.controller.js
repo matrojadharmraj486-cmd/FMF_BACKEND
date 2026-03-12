@@ -19,6 +19,11 @@ const isValidHttpUrl = (value) => {
 
 export const createBanner = async (req, res) => {
   try {
+    console.log("BANNER_CREATE_V2", {
+      hasFile: !!req.file,
+      bannerType: req.body?.bannerType,
+      imageUrl: req.body?.imageUrl
+    });
     const bannerType = (req.body.bannerType || "").trim();
     if (!bannerType) return errorResponse(res, 400, "bannerType required");
     if (bannerType.length < 2 || bannerType.length > 50) {
