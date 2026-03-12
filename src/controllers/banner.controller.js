@@ -3,7 +3,9 @@ import { successResponse, errorResponse } from "../utils/response.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
-  const origin = `${req.protocol}://${req.get("host")}`;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = (forwardedProto ? forwardedProto.split(",")[0] : req.protocol) || "https";
+  const origin = `${proto}://${req.get("host")}`;
   return url.startsWith("http") ? url : `${origin}${url}`;
 };
 
