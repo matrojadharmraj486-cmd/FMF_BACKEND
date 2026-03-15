@@ -14,6 +14,7 @@ const structuredQuestionSchema = new mongoose.Schema({
   part: { type: String, enum: ["Part 1", "Part 2"], required: true },
   question_text: { type: String, required: true },
   isDirect: { type: Boolean, default: false },
+  main_question_answer: [{ type: String }],
   sub_questions: [subQuestionSchema],
   QOTD: { type: Boolean, default: false }
 }, { timestamps: true });

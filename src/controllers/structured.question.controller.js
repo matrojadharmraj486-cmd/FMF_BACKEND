@@ -108,7 +108,16 @@ export const getStructuredQuestions = async (req, res) => {
 
 export const createStructuredQuestion = async (req, res) => {
   try {
-    const { year, part, question_text, sub_questions, id, QOTD, isDirect } = req.body || {};
+    const {
+      year,
+      part,
+      question_text,
+      sub_questions,
+      id,
+      QOTD,
+      isDirect,
+      main_question_answer
+    } = req.body || {};
 
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
@@ -185,6 +194,13 @@ export const createStructuredQuestion = async (req, res) => {
       question_text: String(question_text).trim(),
       sub_questions: normalizedSubs
     };
+    if (main_question_answer !== undefined) {
+      const arr = Array.isArray(main_question_answer)
+        ? main_question_answer
+        : String(main_question_answer).split(";");
+      const cleaned = arr.map(a => String(a || "").trim()).filter(Boolean);
+      if (cleaned.length) payload.main_question_answer = cleaned;
+    }
     if (isDirect !== undefined) {
       const parsedDirect = parseBoolean(isDirect);
       if (parsedDirect === undefined) {
@@ -297,11 +313,16 @@ export const uploadStructuredExcel = async (req, res) => {
             part,
             question_text,
             isDirect: isDirectRow,
+            main_question_answer: [],
             sub_questions: []
           });
         }
         const group = groups.get(key);
         if (isDirectRow) group.isDirect = true;
+        if (mainQuestionAnswer) {
+          const mainAns = mainQuestionAnswer.split(";").map(s => s.trim()).filter(Boolean);
+          if (mainAns.length) group.main_question_answer = mainAns;
+        }
         const sub = { part: sub_part, text: sub_text, answerType };
         if (answerType === "text") {
           sub.answer = answerText ? answerText.split(";").map(s => s.trim()).filter(Boolean) : [];
