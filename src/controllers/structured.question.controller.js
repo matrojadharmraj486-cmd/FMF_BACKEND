@@ -259,6 +259,7 @@ export const uploadStructuredExcel = async (req, res) => {
       subPart: ["sub_part", "subPart", "subquestion_part", "part_label", "sub_q_part", "sub_question_no"],
       subText: ["sub_text", "subText", "sub_question", "subQuestion", "sub_question_text", "medical_reference", "reference_text", "reference", "sub_question_text"],
       questionType: ["question_type", "questiontype", "quetion_type", "question_type_1", "type"],
+      subQuestionType: ["question_type_1", "sub_question_type", "subquestion_type", "sub_type"],
       answerType: ["answerType", "answer_type", "response_type", "format"],
       answerText: ["answerText", "answer_text", "answer", "model_answer", "response", "text_answer", "sub_question_answer"],
       answerImage: ["answerImage", "answer_image", "image", "image_url", "imageurl", "url", "answer_media"]
@@ -290,12 +291,16 @@ export const uploadStructuredExcel = async (req, res) => {
         const subPartRaw = String(pickValue(r, aliases.subPart) || "").trim();
         const subTextRaw = String(pickValue(r, aliases.subText) || "").trim();
         const rawQuestionType = normalizeQuestionType(pickValue(r, aliases.questionType));
-        const isDirectType = ["answer", "ans", "direct", "single"].includes(rawQuestionType);
-        const rawAnswerType = String(pickValue(r, aliases.answerType) || "text").trim().toLowerCase();
-        const answerType = ["image", "img", "photo", "figure"].includes(rawAnswerType) ? "image" : "text";
+        const isDirectType = ["answer", "ans", "direct", "single", "image"].includes(rawQuestionType);
+        const rawSubQuestionType = normalizeQuestionType(pickValue(r, aliases.subQuestionType));
+        const rawAnswerType = String(pickValue(r, aliases.answerType) || "").trim().toLowerCase();
+        const isDirectRow = isDirectType || (!subPartRaw && !subTextRaw);
+        const resolvedTypeToken = isDirectRow
+          ? (rawQuestionType || rawAnswerType || "text")
+          : (rawSubQuestionType || rawAnswerType || "text");
+        const answerType = ["image", "img", "photo", "figure"].includes(resolvedTypeToken) ? "image" : "text";
         let answerText = String(pickValue(r, aliases.answerText) || "").trim();
         const answerImage = String(pickValue(r, aliases.answerImage) || "").trim();
-        const isDirectRow = isDirectType || (!subPartRaw && !subTextRaw);
         const sub_part = isDirectRow ? "a" : parseSubPartFromToken(subPartRaw, "a");
         const sub_text = isDirectRow ? question_text : subTextRaw;
         if (isDirectRow && !answerText && mainQuestionAnswer) answerText = mainQuestionAnswer;
