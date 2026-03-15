@@ -49,6 +49,31 @@ const parseBoolean = (value) => {
   return undefined;
 };
 
+const normalizeQuestionType = (value) => {
+  const v = String(value || "").trim().toLowerCase();
+  if (!v) return "";
+  return v;
+};
+
+const withComputedAnswer = (obj) => {
+  const subs = Array.isArray(obj.sub_questions) ? obj.sub_questions : [];
+  const inferredDirect =
+    subs.length === 1 &&
+    String(subs[0].part || "").toLowerCase() === "a" &&
+    String(subs[0].text || "").trim() === String(obj.question_text || "").trim();
+  if (!obj.isDirect && !inferredDirect) return obj;
+  const sq = subs[0];
+  if (!sq) return obj;
+  obj.answerType = sq.answerType;
+  if (sq.answerType === "text") {
+    obj.answer = sq.answer;
+  } else if (sq.answerType === "image") {
+    obj.answerImage = sq.answerImage;
+  }
+  obj.sub_questions = [];
+  return obj;
+};
+
 export const getStructuredQuestions = async (req, res) => {
   try {
     const { year, part } = req.query;
@@ -59,16 +84,18 @@ export const getStructuredQuestions = async (req, res) => {
       filter.part = p;
     }
     const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
-    const data = docs.map(d => {
+    const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
+      const fallbackQuestionId = `Q${index + 1}`;
+      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         return sq;
       });
-      return obj;
+      return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Questions fetched successfully", {
       total: data.length,
@@ -81,7 +108,7 @@ export const getStructuredQuestions = async (req, res) => {
 
 export const createStructuredQuestion = async (req, res) => {
   try {
-    const { year, part, question_text, sub_questions, id, QOTD } = req.body || {};
+    const { year, part, question_text, sub_questions, id, QOTD, isDirect } = req.body || {};
 
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
@@ -158,6 +185,13 @@ export const createStructuredQuestion = async (req, res) => {
       question_text: String(question_text).trim(),
       sub_questions: normalizedSubs
     };
+    if (isDirect !== undefined) {
+      const parsedDirect = parseBoolean(isDirect);
+      if (parsedDirect === undefined) {
+        return errorResponse(res, 400, "isDirect must be boolean");
+      }
+      payload.isDirect = parsedDirect;
+    }
     if (id !== undefined && id !== null && String(id).trim()) {
       payload.id = String(id).trim();
     }
@@ -172,6 +206,7 @@ export const createStructuredQuestion = async (req, res) => {
     const created = await StructuredQuestion.create(payload);
     const obj = created.toObject();
     obj.id = obj.id || String(obj._id);
+    obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : undefined;
     obj.sub_questions = (obj.sub_questions || []).map(sq => {
       if (sq.answerType === "image" && sq.answerImage) {
         sq.answerImage = toAbsolute(sq.answerImage, req);
@@ -181,7 +216,7 @@ export const createStructuredQuestion = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      data: obj
+      data: withComputedAnswer(obj)
     });
   } catch (e) {
     return errorResponse(res, 500, e.message || "Internal server error");
@@ -207,7 +242,8 @@ export const uploadStructuredExcel = async (req, res) => {
       mainQuestionAnswer: ["main_question_answer"],
       subPart: ["sub_part", "subPart", "subquestion_part", "part_label", "sub_q_part", "sub_question_no"],
       subText: ["sub_text", "subText", "sub_question", "subQuestion", "sub_question_text", "medical_reference", "reference_text", "reference", "sub_question_text"],
-      answerType: ["answerType", "answer_type", "type", "response_type", "format", "question_type_1", "question_type"],
+      questionType: ["question_type", "questiontype", "quetion_type", "question_type_1", "type"],
+      answerType: ["answerType", "answer_type", "response_type", "format"],
       answerText: ["answerText", "answer_text", "answer", "model_answer", "response", "text_answer", "sub_question_answer"],
       answerImage: ["answerImage", "answer_image", "image", "image_url", "imageurl", "url", "answer_media"]
     };
@@ -237,11 +273,13 @@ export const uploadStructuredExcel = async (req, res) => {
         const mainQuestionAnswer = String(pickValue(r, aliases.mainQuestionAnswer) || "").trim();
         const subPartRaw = String(pickValue(r, aliases.subPart) || "").trim();
         const subTextRaw = String(pickValue(r, aliases.subText) || "").trim();
+        const rawQuestionType = normalizeQuestionType(pickValue(r, aliases.questionType));
+        const isDirectType = ["answer", "ans", "direct", "single"].includes(rawQuestionType);
         const rawAnswerType = String(pickValue(r, aliases.answerType) || "text").trim().toLowerCase();
         const answerType = ["image", "img", "photo", "figure"].includes(rawAnswerType) ? "image" : "text";
         let answerText = String(pickValue(r, aliases.answerText) || "").trim();
         const answerImage = String(pickValue(r, aliases.answerImage) || "").trim();
-        const isDirectRow = !subPartRaw && !subTextRaw;
+        const isDirectRow = isDirectType || (!subPartRaw && !subTextRaw);
         const sub_part = isDirectRow ? "a" : parseSubPartFromToken(subPartRaw, "a");
         const sub_text = isDirectRow ? question_text : subTextRaw;
         if (isDirectRow && !answerText && mainQuestionAnswer) answerText = mainQuestionAnswer;
@@ -258,9 +296,12 @@ export const uploadStructuredExcel = async (req, res) => {
             year,
             part,
             question_text,
+            isDirect: isDirectRow,
             sub_questions: []
           });
         }
+        const group = groups.get(key);
+        if (isDirectRow) group.isDirect = true;
         const sub = { part: sub_part, text: sub_text, answerType };
         if (answerType === "text") {
           sub.answer = answerText ? answerText.split(";").map(s => s.trim()).filter(Boolean) : [];
@@ -269,7 +310,7 @@ export const uploadStructuredExcel = async (req, res) => {
             ? answerImage
             : `/uploads/${answerImage}`;
         }
-        groups.get(key).sub_questions.push(sub);
+        group.sub_questions.push(sub);
       }
       docs = Array.from(groups.values());
     } else {
@@ -297,6 +338,7 @@ export const uploadStructuredExcel = async (req, res) => {
             year,
             part,
             question_text: q,
+            isDirect: true,
             sub_questions: [{ part: "a", text: q, answerType: "text", answer: ans }]
           });
           i = j;
@@ -345,14 +387,14 @@ export const uploadStructuredExcel = async (req, res) => {
               j++;
             }
           }
-          parents.push({ id: undefined, year, part, question_text: qText, sub_questions: subs });
+          parents.push({ id: undefined, year, part, question_text: qText, isDirect: false, sub_questions: subs });
           i = j;
           continue;
         }
         if (token.toLowerCase() === "image") {
           const q = lines[i + 1] || "";
           const url = lines[i + 3] || lines[i + 2] || "";
-          parents.push({ id: undefined, year, part, question_text: q, sub_questions: [{ part: "a", text: q, answerType: "image", answerImage: url }] });
+          parents.push({ id: undefined, year, part, question_text: q, isDirect: true, sub_questions: [{ part: "a", text: q, answerType: "image", answerImage: url }] });
           i += 4;
           continue;
         }
@@ -381,16 +423,18 @@ export const adminListStructuredQuestions = async (req, res) => {
       filter.part = p;
     }
     const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
-    const data = docs.map(d => {
+    const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
+      const fallbackQuestionId = `Q${index + 1}`;
+      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         return sq;
       });
-      return obj;
+      return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Admin questions fetched", data);
   } catch (e) {
@@ -401,16 +445,18 @@ export const adminListStructuredQuestions = async (req, res) => {
 export const getStructuredQotdQuestions = async (req, res) => {
   try {
     const docs = await StructuredQuestion.find({ QOTD: true }).sort({ year: -1, part: 1, createdAt: -1 });
-    const data = docs.map(d => {
+    const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
+      const fallbackQuestionId = `Q${index + 1}`;
+      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         return sq;
       });
-      return obj;
+      return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "QOTD questions fetched", {
       total: data.length,

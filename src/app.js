@@ -15,6 +15,8 @@ import qotdRoutes from "./routes/qotd.routes.js";
 import adminAuthRoutes from "./routes/admin.auth.routes.js";
 import bannersRoutes from "./routes/banners.routes.js";
 import adminStructuredRoutes from "./routes/admin.structured.routes.js";
+import adminTestimonialRoutes from "./routes/admin.testimonial.routes.js";
+import testimonialRoutes from "./routes/testimonial.routes.js";
 
 
 const app = express();
@@ -40,6 +42,7 @@ app.use("/api/v1", stateRoutes);
 app.use("/api", questionRoutes);
 app.use("/api", qotdRoutes);
 app.use("/api", bannersRoutes);
+app.use("/api", testimonialRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);
 app.use("/api/admin", adminQuestionRoutes);
@@ -47,6 +50,7 @@ app.use("/api/admin", adminUserRoutes);
 app.use("/api/admin", adminBannerRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminStructuredRoutes);
+app.use("/api/admin", adminTestimonialRoutes);
 app.use("/uploads", express.static("uploads"));
 
 
