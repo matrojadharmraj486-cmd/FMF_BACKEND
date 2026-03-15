@@ -1,5 +1,5 @@
 import Banner from "../models/Banner.js";
-import Qotd from "../models/Qotd.js";
+import StructuredQuestion from "../models/StructuredQuestion.js";
 import Testimonial from "../models/Testimonial.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
@@ -11,12 +11,31 @@ const toAbsolute = (url, req) => {
   return url.startsWith("http") ? url : `${origin}${url}`;
 };
 
+const withComputedAnswer = (obj) => {
+  const subs = Array.isArray(obj.sub_questions) ? obj.sub_questions : [];
+  const inferredDirect =
+    subs.length === 1 &&
+    String(subs[0].part || "").toLowerCase() === "a" &&
+    String(subs[0].text || "").trim() === String(obj.question_text || "").trim();
+  if (!obj.isDirect && !inferredDirect) return obj;
+  const sq = subs[0];
+  if (!sq) return obj;
+  obj.answerType = sq.answerType;
+  if (sq.answerType === "text") {
+    obj.answer = sq.answer;
+  } else if (sq.answerType === "image") {
+    obj.answerImage = sq.answerImage;
+  }
+  obj.sub_questions = [];
+  return obj;
+};
+
 export const getHomeData = async (req, res) => {
   try {
     const [banners, testimonials, qotd] = await Promise.all([
       Banner.find({ isActive: true }).sort({ createdAt: -1 }),
       Testimonial.find({}).sort({ createdAt: -1 }),
-      Qotd.findOne({ isActive: true }).sort({ createdAt: -1 })
+      StructuredQuestion.findOne({ QOTD: true }).sort({ year: -1, part: 1, createdAt: -1 })
     ]);
 
     const bannerData = banners.map(d => ({
@@ -31,18 +50,20 @@ export const getHomeData = async (req, res) => {
     }));
 
     const qotdData = qotd
-      ? {
-          question: qotd.question,
-          answerType: qotd.answerType,
-          answer: qotd.answerType === "text" ? qotd.answerText : undefined,
-          answerImageUrl: qotd.answerType === "image" ? toAbsolute(qotd.answerImage, req) : undefined
-        }
-      : {
-          question: null,
-          answerType: null,
-          answer: null,
-          answerImageUrl: null
-        };
+      ? (() => {
+          const obj = qotd.toObject();
+          obj.id = obj.id || String(obj._id);
+          const fallbackQuestionId = "Q1";
+          obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+          obj.sub_questions = (obj.sub_questions || []).map(sq => {
+            if (sq.answerType === "image" && sq.answerImage) {
+              sq.answerImage = toAbsolute(sq.answerImage, req);
+            }
+            return sq;
+          });
+          return withComputedAnswer(obj);
+        })()
+      : null;
 
     return successResponse(res, 200, "Home data fetched", {
       banners: bannerData,
