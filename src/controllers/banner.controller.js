@@ -19,17 +19,30 @@ const isValidHttpUrl = (value) => {
   }
 };
 
+const isValidRedirectionUrl = (value) => {
+  if (!value) return false;
+  const v = String(value).trim();
+  return v.startsWith("/") || isValidHttpUrl(v);
+};
+
 export const createBanner = async (req, res) => {
   try {
     console.log("BANNER_CREATE_V2", {
       hasFile: !!req.file,
       bannerType: req.body?.bannerType,
-      imageUrl: req.body?.imageUrl
+      imageUrl: req.body?.imageUrl,
+      redirectionUrl: req.body?.redirectionUrl
     });
     const bannerType = (req.body.bannerType || "").trim();
     if (!bannerType) return errorResponse(res, 400, "bannerType required");
     if (bannerType.length < 2 || bannerType.length > 50) {
       return errorResponse(res, 400, "bannerType must be between 2 and 50 characters");
+    }
+
+    const redirectionUrl = (req.body.redirectionUrl || "").trim();
+    if (!redirectionUrl) return errorResponse(res, 400, "redirectionUrl required");
+    if (!isValidRedirectionUrl(redirectionUrl)) {
+      return errorResponse(res, 400, "redirectionUrl must start with '/' or be a valid absolute URL");
     }
 
     let image = "";
@@ -44,7 +57,7 @@ export const createBanner = async (req, res) => {
       imageUrl = providedUrl;
     }
 
-    const doc = await Banner.create({ image, imageUrl, bannerType, isActive: true });
+    const doc = await Banner.create({ image, imageUrl, bannerType, redirectionUrl, isActive: true });
     const data = {
       ...doc.toObject(),
       image: toAbsolute(doc.image, req),

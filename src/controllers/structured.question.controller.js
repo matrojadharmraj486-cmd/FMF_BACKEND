@@ -15,6 +15,8 @@ const normalizePart = (raw) => {
   return null;
 };
 
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const normalizeHeader = (key) =>
   String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -463,6 +465,58 @@ export const adminListStructuredQuestions = async (req, res) => {
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Admin questions fetched", data);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const searchStructuredQuestions = async (req, res) => {
+  try {
+    const { year, part, search } = req.query;
+    if (year === undefined || year === null || year === "") {
+      return errorResponse(res, 400, "year required");
+    }
+    const parsedYear = Number(year);
+    if (!Number.isFinite(parsedYear)) {
+      return errorResponse(res, 400, "year must be a number");
+    }
+    if (!search || !String(search).trim()) {
+      return errorResponse(res, 400, "search required");
+    }
+
+    const filter = { year: parsedYear };
+    if (part) {
+      const p = normalizePart(part) || part;
+      filter.part = p;
+    }
+
+    const safe = escapeRegex(search.trim());
+    const regex = new RegExp(safe, "i");
+    filter.$or = [
+      { question_text: regex },
+      { "sub_questions.text": regex },
+      { main_question_answer: regex }
+    ];
+
+    const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
+    const data = docs.map((d, index) => {
+      const obj = d.toObject();
+      obj.id = obj.id || String(obj._id);
+      const fallbackQuestionId = `Q${index + 1}`;
+      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      obj.sub_questions = (obj.sub_questions || []).map(sq => {
+        if (sq.answerType === "image" && sq.answerImage) {
+          sq.answerImage = toAbsolute(sq.answerImage, req);
+        }
+        return sq;
+      });
+      return withComputedAnswer(obj);
+    });
+
+    return successResponse(res, 200, "Search results fetched", {
+      total: data.length,
+      questions: data
+    });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
