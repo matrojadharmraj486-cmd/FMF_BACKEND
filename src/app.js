@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import path from "path";
 
 import authRoutes from "./routes/authRoutes.js";
 import stateRoutes from "./routes/state.route.js";
@@ -53,7 +54,10 @@ app.use("/api/admin", adminBannerRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
-app.use("/uploads", express.static("uploads"));
+const uploadsPath = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsPath));
 
 
 export default app;
