@@ -1,20 +1,25 @@
-import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
-const getCloudinaryConfig = () => {
+let isConfigured = false;
+
+const ensureCloudinaryConfig = () => {
+  if (isConfigured) return;
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+  console.log("CLOUDINARY_CLOUD_NAME", process.env.CLOUDINARY_CLOUD_NAME)
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
     throw new Error("Cloudinary not configured");
   }
-  cloudinary.v2.config({
+  cloudinary.config({
     cloud_name: CLOUDINARY_CLOUD_NAME,
     api_key: CLOUDINARY_API_KEY,
     api_secret: CLOUDINARY_API_SECRET
   });
+  isConfigured = true;
 };
 
 export const uploadImageFile = async (filePath, folder = "fmf") => {
-  getCloudinaryConfig();
-  const result = await cloudinary.v2.uploader.upload(filePath, {
+  ensureCloudinaryConfig();
+  const result = await cloudinary.uploader.upload(filePath, {
     folder,
     resource_type: "image"
   });
