@@ -56,7 +56,7 @@ app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
 const uploadsPath = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
-  : path.join(process.cwd(), "uploads");
+  : (process.env.RENDER ? "/var/data/uploads" : path.join(process.cwd(), "uploads"));
 app.use("/uploads", express.static(uploadsPath));
 
 

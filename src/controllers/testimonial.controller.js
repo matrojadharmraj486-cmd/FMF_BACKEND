@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import Testimonial from "../models/Testimonial.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { uploadImageFile } from "../utils/cloudinary.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -33,7 +34,13 @@ export const createTestimonial = async (req, res) => {
       return errorResponse(res, 400, "name, designation, location, review required");
     }
 
-    const photoUrl = `/uploads/${req.file.filename}`;
+    const uploaded = await uploadImageFile(req.file.path, "fmf/testimonials");
+    const photoUrl = uploaded.url;
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch {
+      // ignore cleanup errors
+    }
     const doc = await Testimonial.create({ photoUrl, name, designation, location, review });
     const data = {
       ...doc.toObject(),

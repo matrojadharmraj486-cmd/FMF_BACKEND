@@ -1,5 +1,7 @@
+import fs from "fs";
 import Banner from "../models/Banner.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { uploadImageFile } from "../utils/cloudinary.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -48,7 +50,14 @@ export const createBanner = async (req, res) => {
     let image = "";
     let imageUrl;
     if (req.file) {
-      image = `/uploads/${req.file.filename}`;
+      const uploaded = await uploadImageFile(req.file.path, "fmf/banners");
+      image = uploaded.url;
+      imageUrl = uploaded.url;
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {
+        // ignore cleanup errors
+      }
     } else {
       const providedUrl = String(req.body.imageUrl || "").trim();
       if (!providedUrl) return errorResponse(res, 400, "imageUrl required when no image file is provided");
