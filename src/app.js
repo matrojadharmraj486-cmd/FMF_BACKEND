@@ -64,10 +64,11 @@ app.use("/api/admin", adminBannerRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
-const uploadsPath = process.env.UPLOAD_DIR
-  ? path.resolve(process.env.UPLOAD_DIR)
-  : (process.env.RENDER ? "/var/data/uploads" : path.join(process.cwd(), "uploads"));
+import os from "os";
 app.use("/uploads", express.static(uploadsPath));
 
 
 export default app;
+const uploadsPath = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(os.tmpdir(), "fmf-uploads");

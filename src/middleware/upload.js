@@ -1,10 +1,11 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 
 const uploadDir = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
-  : (process.env.RENDER ? "/var/data/uploads" : path.join(process.cwd(), "uploads"));
+  : path.join(os.tmpdir(), "fmf-uploads");
 
 const storage = multer.diskStorage({
 
