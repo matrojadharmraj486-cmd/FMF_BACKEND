@@ -78,6 +78,54 @@ export const getTestimonialsPublic = async (req, res) => {
   }
 };
 
+export const updateTestimonial = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await Testimonial.findById(id);
+    if (!doc) return errorResponse(res, 404, "Testimonial not found");
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
+      const name = String(req.body.name || "").trim();
+      if (!name) return errorResponse(res, 400, "name cannot be empty");
+      doc.name = name;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "designation")) {
+      const designation = String(req.body.designation || "").trim();
+      if (!designation) return errorResponse(res, 400, "designation cannot be empty");
+      doc.designation = designation;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "location")) {
+      const location = String(req.body.location || "").trim();
+      if (!location) return errorResponse(res, 400, "location cannot be empty");
+      doc.location = location;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "review")) {
+      const review = String(req.body.review || "").trim();
+      if (!review) return errorResponse(res, 400, "review cannot be empty");
+      doc.review = review;
+    }
+
+    if (req.file) {
+      const uploaded = await uploadImageFile(req.file.path, "fmf/testimonials");
+      doc.photoUrl = uploaded.url;
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+
+    await doc.save();
+    const data = {
+      ...doc.toObject(),
+      photoUrl: toAbsolute(doc.photoUrl, req)
+    };
+    return successResponse(res, 200, "Testimonial updated", data);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const deleteTestimonial = async (req, res) => {
   try {
     const { id } = req.params;

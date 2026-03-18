@@ -95,6 +95,63 @@ export const getBanners = async (req, res) => {
   }
 };
 
+export const updateBanner = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await Banner.findById(id);
+    if (!doc) return errorResponse(res, 404, "Banner not found");
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "bannerType")) {
+      const bannerType = String(req.body.bannerType || "").trim();
+      if (!bannerType) return errorResponse(res, 400, "bannerType cannot be empty");
+      if (bannerType.length < 2 || bannerType.length > 50) {
+        return errorResponse(res, 400, "bannerType must be between 2 and 50 characters");
+      }
+      doc.bannerType = bannerType;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "redirectionUrl")) {
+      const redirectionUrl = String(req.body.redirectionUrl || "").trim();
+      if (!redirectionUrl) return errorResponse(res, 400, "redirectionUrl cannot be empty");
+      if (!isValidRedirectionUrl(redirectionUrl)) {
+        return errorResponse(res, 400, "redirectionUrl must start with '/' or be a valid absolute URL");
+      }
+      doc.redirectionUrl = redirectionUrl;
+    }
+
+    if (req.file) {
+      const uploaded = await uploadImageFile(req.file.path, "fmf/banners");
+      doc.image = uploaded.url;
+      doc.imageUrl = uploaded.url;
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {
+        // ignore cleanup errors
+      }
+    } else if (Object.prototype.hasOwnProperty.call(req.body, "imageUrl")) {
+      const providedUrl = String(req.body.imageUrl || "").trim();
+      if (!providedUrl) return errorResponse(res, 400, "imageUrl cannot be empty");
+      if (!isValidHttpUrl(providedUrl)) return errorResponse(res, 400, "imageUrl must be a valid URL");
+      doc.image = providedUrl;
+      doc.imageUrl = providedUrl;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "isActive")) {
+      doc.isActive = Boolean(req.body.isActive);
+    }
+
+    await doc.save();
+    const data = {
+      ...doc.toObject(),
+      image: toAbsolute(doc.image, req),
+      imageUrl: toAbsolute(doc.imageUrl, req)
+    };
+    return successResponse(res, 200, "Banner updated", data);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const deleteBanner = async (req, res) => {
   try {
     const { id } = req.params;
