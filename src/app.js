@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import path from "path";
+import os from "os";
 
 import authRoutes from "./routes/authRoutes.js";
 import stateRoutes from "./routes/state.route.js";
@@ -22,6 +23,9 @@ import homeRoutes from "./routes/home.routes.js";
 
 
 const app = express();
+const uploadsPath = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(os.tmpdir(), "fmf-uploads");
 
 app.set("trust proxy", 1);
 app.use(express.json());
@@ -64,11 +68,7 @@ app.use("/api/admin", adminBannerRoutes);
 app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
-import os from "os";
 app.use("/uploads", express.static(uploadsPath));
 
 
 export default app;
-const uploadsPath = process.env.UPLOAD_DIR
-  ? path.resolve(process.env.UPLOAD_DIR)
-  : path.join(os.tmpdir(), "fmf-uploads");
