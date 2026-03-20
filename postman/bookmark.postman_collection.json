@@ -1,0 +1,251 @@
+{
+  "info": {
+    "name": "FMF Bookmark API",
+    "_postman_id": "c7b8f6f2-1df6-4d23-9c8a-4b3a0d7b1d7a",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Collection",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data._id) {",
+              "  pm.collectionVariables.set(\"collectionId\", json.data._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"My Collection\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get My Collections",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get One Collection",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "{{collectionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Add Question To Collection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": {\n    \"id\": \"{{questionId}}\",\n    \"question_text\": \"Sample question\",\n    \"sub_questions\": []\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}/add",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "{{collectionId}}",
+            "add"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Question Bookmark Status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/check/{{questionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "check",
+            "{{questionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Remove Question From Collection",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}/remove/{{questionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "{{collectionId}}",
+            "remove",
+            "{{questionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Collection",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Collection Name\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "{{collectionId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Collection",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "bookmark",
+            "{{collectionId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "collectionId",
+      "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": ""
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import adminStructuredRoutes from "./routes/admin.structured.routes.js";
 import adminTestimonialRoutes from "./routes/admin.testimonial.routes.js";
 import testimonialRoutes from "./routes/testimonial.routes.js";
 import homeRoutes from "./routes/home.routes.js";
+import opinionRoutes from "./routes/opinion.routes.js";
 
 
 const app = express();
@@ -60,6 +61,7 @@ app.use("/api", qotdRoutes);
 app.use("/api", bannersRoutes);
 app.use("/api", testimonialRoutes);
 app.use("/api", homeRoutes);
+app.use("/api", opinionRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);
 app.use("/api/admin", adminQuestionRoutes);
