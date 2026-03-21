@@ -1,5 +1,6 @@
 import Bookmark from "../models/BookMark.js";
 import StructuredQuestion from "../models/StructuredQuestion.js";
+import mongoose from "mongoose";
 import { successResponse, errorResponse } from "../utils/response.js";
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -24,6 +25,20 @@ const withComputedAnswer = (obj) => {
   }
   obj.sub_questions = [];
   return obj;
+};
+
+const normalizeStructuredQuestion = (doc, req) => {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.id = obj.id || String(obj._id);
+  obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : undefined;
+  obj.sub_questions = (obj.sub_questions || []).map(sq => {
+    if (sq.answerType === "image" && sq.answerImage) {
+      sq.answerImage = toAbsolute(sq.answerImage, req);
+    }
+    return sq;
+  });
+  return withComputedAnswer(obj);
 };
 
 /* Create Collection */
@@ -97,22 +112,10 @@ export const checkStatus = async (req, res) => {
     "questions.id": questionId
   });
 
-  let question = await StructuredQuestion.findOne({
+  const questionDoc = await StructuredQuestion.findOne({
     $or: [{ _id: questionId }, { id: questionId }]
   });
-
-  if (question) {
-    const obj = question.toObject();
-    obj.id = obj.id || String(obj._id);
-    obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : undefined;
-    obj.sub_questions = (obj.sub_questions || []).map(sq => {
-      if (sq.answerType === "image" && sq.answerImage) {
-        sq.answerImage = toAbsolute(sq.answerImage, req);
-      }
-      return sq;
-    });
-    question = withComputedAnswer(obj);
-  }
+  const question = normalizeStructuredQuestion(questionDoc, req);
 
   return successResponse(res, 200, "Status", {
     bookmarked: collections.length > 0,
@@ -120,6 +123,49 @@ export const checkStatus = async (req, res) => {
     question
   });
 
+};
+
+/* Get Questions By Collection */
+export const getCollectionQuestions = async (req, res) => {
+
+  const { collectionId } = req.params;
+
+  const bookmark = await Bookmark.findById(collectionId);
+
+  if (!bookmark)
+    return errorResponse(res, 404, "Collection not found");
+
+  if (bookmark.user.toString() !== req.user._id.toString())
+    return errorResponse(res, 403, "Unauthorized");
+
+  const ids = (bookmark.questions || []).map(q => q.id).filter(Boolean);
+
+  if (ids.length === 0) {
+    return successResponse(res, 200, "Questions fetched", []);
+  }
+
+  const objectIds = ids
+    .filter(id => mongoose.Types.ObjectId.isValid(id))
+    .map(id => new mongoose.Types.ObjectId(id));
+
+  const docs = await StructuredQuestion.find({
+    $or: [
+      { _id: { $in: objectIds } },
+      { id: { $in: ids } }
+    ]
+  });
+
+  const mapped = new Map();
+  for (const d of docs) {
+    const normalized = normalizeStructuredQuestion(d, req);
+    if (!normalized) continue;
+    mapped.set(String(d._id), normalized);
+    if (normalized.id) mapped.set(String(normalized.id), normalized);
+  }
+
+  const data = ids.map(id => mapped.get(String(id))).filter(Boolean);
+
+  return successResponse(res, 200, "Questions fetched", data);
 };
 
 /* Remove Question */
@@ -175,4 +221,3 @@ export const deleteCollection = async (req, res) => {
 
   return successResponse(res, 200, "Collection deleted");
 };
-

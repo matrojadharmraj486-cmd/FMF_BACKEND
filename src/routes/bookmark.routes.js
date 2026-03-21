@@ -6,6 +6,7 @@ import {
   getCollections,
   addQuestion,
   getOneCollection,
+  getCollectionQuestions,
   checkStatus,
   removeQuestion,
   updateCollection,
@@ -18,6 +19,8 @@ const router = express.Router();
 router.post("/", authenticate, createCollection);
 
 router.get("/", authenticate, getCollections);
+
+router.get("/collection/:collectionId/questions", authenticate, getCollectionQuestions);
 
 router.get("/:id", authenticate, getOneCollection);
 

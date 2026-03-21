@@ -9,6 +9,17 @@ const userSchema = new mongoose.Schema({
   age: Number,
   role: { type: String, default: "App" },
   isSubscribed: { type: Boolean, default: false },
+  subscription: {
+    plan: { type: mongoose.Schema.Types.ObjectId, ref: "Subscription" },
+    status: {
+      type: String,
+      enum: ["active", "expired", "canceled"],
+      default: "expired"
+    },
+    startDate: Date,
+    endDate: Date,
+    lastPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" }
+  },
 state: {
   id: String,
   name: String
