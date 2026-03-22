@@ -45,7 +45,7 @@ app.use(
   })
 );
 const allowedOrigins = [
-  "https://fmf-admin.onrender.com"
+  "https://fmf-admin-panel-1.onrender.com/"
 ];
 
 app.use(
