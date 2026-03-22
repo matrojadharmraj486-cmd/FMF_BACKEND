@@ -45,14 +45,15 @@ app.use(
   })
 );
 const allowedOrigins = [
-  "https://fmf-admin-panel-1.onrender.com/"
+  "https://fmf-admin-panel-1.onrender.com"
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
