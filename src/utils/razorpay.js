@@ -7,9 +7,12 @@ if (!keyId || !keySecret) {
   console.warn("RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing");
 }
 
-const razorpay = new Razorpay({
-  key_id: keyId,
-  key_secret: keySecret
-});
+const razorpay =
+  keyId && keySecret
+    ? new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret
+      })
+    : null;
 
 export { razorpay, keyId, keySecret };

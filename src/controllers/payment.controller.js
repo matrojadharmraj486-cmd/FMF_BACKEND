@@ -26,6 +26,9 @@ const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) 
 
 export const createOrder = async (req, res) => {
   try {
+    if (!razorpay || !keyId || !keySecret) {
+      return errorResponse(res, 503, "Razorpay is not configured");
+    }
     const { subscriptionId } = req.body || {};
     if (!subscriptionId) return errorResponse(res, 400, "subscriptionId is required");
 
@@ -80,6 +83,9 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
+    if (!keySecret) {
+      return errorResponse(res, 503, "Razorpay is not configured");
+    }
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return errorResponse(res, 400, "razorpay_order_id, razorpay_payment_id, razorpay_signature required");
@@ -131,6 +137,9 @@ export const verifyPayment = async (req, res) => {
 export const handleWebhook = async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+    if (!webhookSecret) {
+      return errorResponse(res, 503, "Razorpay webhook is not configured");
+    }
     const signature = req.headers["x-razorpay-signature"];
     const rawBody = req.rawBody || Buffer.from("");
 
