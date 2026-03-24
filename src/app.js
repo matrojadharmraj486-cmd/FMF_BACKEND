@@ -23,6 +23,8 @@ import opinionRoutes from "./routes/opinion.routes.js";
 import adminSubscriptionRoutes from "./routes/admin.subscription.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
+import supportTicketRoutes from "./routes/support.ticket.routes.js";
+import adminSupportTicketRoutes from "./routes/admin.support.ticket.routes.js";
 
 
 const app = express();
@@ -71,6 +73,7 @@ app.use("/api", testimonialRoutes);
 app.use("/api", homeRoutes);
 app.use("/api", opinionRoutes);
 app.use("/api", subscriptionRoutes);
+app.use("/api", supportTicketRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);
@@ -81,6 +84,7 @@ app.use("/api/admin", adminAuthRoutes);
 app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
 app.use("/api/admin", adminSubscriptionRoutes);
+app.use("/api/admin", adminSupportTicketRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
 

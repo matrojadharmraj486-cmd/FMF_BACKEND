@@ -24,6 +24,7 @@ router.get("/collection/:collectionId/questions", authenticate, getCollectionQue
 
 router.get("/:id", authenticate, getOneCollection);
 
+router.post("/add", authenticate, addQuestion);
 router.post("/:collectionId/add", authenticate, addQuestion);
 
 router.get("/check/:questionId", authenticate, checkStatus);

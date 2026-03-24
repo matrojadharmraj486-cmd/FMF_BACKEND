@@ -1,0 +1,365 @@
+{
+  "info": {
+    "name": "FMF Support Ticket API",
+    "_postman_id": "9a1e4e58-c1d2-4aa9-8db8-c7bcab95f541",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "App - Create Support Ticket",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json && json.data && json.data._id) {",
+              "  pm.collectionVariables.set(\"ticketId\", json.data._id);",
+              "}",
+              "if (json && json.data && json.data.ticketNumber) {",
+              "  pm.collectionVariables.set(\"ticketNumber\", json.data.ticketNumber);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "subject",
+              "value": "Unable to access subscription content",
+              "type": "text"
+            },
+            {
+              "key": "category",
+              "value": "Subscription",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "value": "high",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "I have purchased the plan but premium questions are still locked in the app.",
+              "type": "text"
+            },
+            {
+              "key": "attachment",
+              "type": "file",
+              "src": "{{attachmentPath}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/support-tickets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "support-tickets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "App - Get My Support Tickets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/support-tickets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "support-tickets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "App - Get My Support Ticket By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Get All Support Tickets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Filter Support Tickets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets?status=open&priority=high&category=Subscription&search={{ticketNumber}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "open"
+            },
+            {
+              "key": "priority",
+              "value": "high"
+            },
+            {
+              "key": "category",
+              "value": "Subscription"
+            },
+            {
+              "key": "search",
+              "value": "{{ticketNumber}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Get Support Ticket By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Mark Ticket In Progress",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"in_progress\",\n  \"adminNote\": \"Assigned to support team for review.\",\n  \"note\": \"Ticket picked by admin\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Mark Ticket Pending User",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"pending_user\",\n  \"adminNote\": \"Need screenshot of the issue from the user.\",\n  \"note\": \"Requested more information from user\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Mark Ticket Resolved",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"resolved\",\n  \"adminNote\": \"Subscription access issue fixed.\",\n  \"note\": \"Issue resolved and verified\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin - Close Ticket",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"closed\",\n  \"adminNote\": \"Ticket closed after confirmation.\",\n  \"note\": \"Closed by admin\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "support-tickets",
+            "{{ticketId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "ticketId",
+      "value": ""
+    },
+    {
+      "key": "ticketNumber",
+      "value": ""
+    },
+    {
+      "key": "attachmentPath",
+      "value": ""
+    }
+  ]
+}

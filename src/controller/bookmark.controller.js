@@ -68,25 +68,58 @@ export const getCollections = async (req, res) => {
 /* Add Question */
 export const addQuestion = async (req, res) => {
 
-  const { collectionId } = req.params;
-  const { question } = req.body;
+  const collectionId =
+    req.body.collectionId ||
+    req.params.collectionId ||
+    req.query.collectionId;
+  const questionId =
+    req.body.questionId ||
+    req.query.questionId;
+
+  if (!collectionId)
+    return errorResponse(res, 400, "collectionId is required");
+
+  if (!questionId)
+    return errorResponse(res, 400, "questionId is required");
 
   const bookmark = await Bookmark.findById(collectionId);
 
   if (!bookmark)
     return errorResponse(res, 404, "Collection not found");
 
+  if (bookmark.user.toString() !== req.user._id.toString())
+    return errorResponse(res, 403, "Unauthorized");
+
+  const questionDoc = await StructuredQuestion.findOne({
+    $or: [{ _id: questionId }, { id: questionId }]
+  });
+
+  if (!questionDoc)
+    return errorResponse(res, 404, "Question not found");
+
+  const normalizedQuestion = normalizeStructuredQuestion(questionDoc, req);
+  const storedQuestion = {
+    id: normalizedQuestion.id,
+    question_text: normalizedQuestion.question_text,
+    sub_questions: normalizedQuestion.sub_questions
+  };
+
   // prevent duplicate
-  const exists = bookmark.questions.find(q => q.id === question.id);
+  const exists = bookmark.questions.find(
+    q => String(q.id) === String(storedQuestion.id)
+  );
 
   if (exists)
     return errorResponse(res, 400, "Already bookmarked");
 
-  bookmark.questions.push(question);
+  bookmark.questions.push(storedQuestion);
 
   await bookmark.save();
 
-  return successResponse(res, 200, "Question added");
+  return successResponse(res, 200, "Question added", {
+    collectionId: bookmark._id,
+    questionId: storedQuestion.id
+  });
 };
 
 
