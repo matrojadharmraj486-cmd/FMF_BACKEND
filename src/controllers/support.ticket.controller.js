@@ -1,5 +1,6 @@
 import SupportTicket from "../models/SupportTicket.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { logger } from "../utils/logger.js";
 
 const VALID_STATUSES = ["open", "in_progress", "pending_user", "resolved", "closed"];
 const VALID_PRIORITIES = ["low", "medium", "high", "urgent"];
@@ -60,14 +61,33 @@ export const createSupportTicket = async (req, res) => {
       };
     }
 
+    logger.info("Support ticket creation requested", {
+      userId: req.user._id,
+      category,
+      priority,
+      hasAttachment: Boolean(req.file)
+    });
+
     const ticket = await SupportTicket.create(payload);
     const populated = await SupportTicket.findById(ticket._id).populate(
       "user",
       "fullName email mobileNumber"
     );
 
+    logger.info("Support ticket created", {
+      ticketId: ticket._id,
+      ticketNumber: ticket.ticketNumber,
+      userId: req.user._id,
+      status: ticket.status
+    });
+
     return successResponse(res, 201, "Support ticket created", mapTicket(populated, req));
   } catch (e) {
+    logger.error("Support ticket creation failed", {
+      userId: req.user?._id,
+      error: e.message,
+      stack: e.stack
+    });
     return errorResponse(res, 500, e.message);
   }
 };
@@ -195,6 +215,15 @@ export const updateSupportTicketAdmin = async (req, res) => {
 
     await ticket.save();
 
+    logger.info("Support ticket updated by admin", {
+      ticketId: ticket._id,
+      ticketNumber: ticket.ticketNumber,
+      adminId: req.user._id,
+      status: ticket.status,
+      assignedTo: ticket.assignedTo || null,
+      historyChanged
+    });
+
     const populated = await SupportTicket.findById(ticket._id)
       .populate("user", "fullName email mobileNumber")
       .populate("assignedTo", "fullName email")
@@ -202,6 +231,12 @@ export const updateSupportTicketAdmin = async (req, res) => {
 
     return successResponse(res, 200, "Support ticket updated", mapTicket(populated, req));
   } catch (e) {
+    logger.error("Support ticket admin update failed", {
+      ticketId: req.params.id,
+      adminId: req.user?._id,
+      error: e.message,
+      stack: e.stack
+    });
     return errorResponse(res, 500, e.message);
   }
 };

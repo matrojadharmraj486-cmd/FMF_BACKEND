@@ -1,6 +1,7 @@
 import xlsx from "xlsx";
 import StructuredQuestion from "../models/StructuredQuestion.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { logger } from "../utils/logger.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -246,10 +247,25 @@ export const uploadStructuredExcel = async (req, res) => {
     if (!req.file) return errorResponse(res, 400, "file required");
     const overrideYear = req.body.year ? Number(req.body.year) : undefined;
     const overridePart = normalizePart(req.body.part) || req.body.part;
+
+    logger.info("Structured question upload started", {
+      fileName: req.file.originalname,
+      storedFileName: req.file.filename,
+      path: req.file.path,
+      overrideYear,
+      overridePart,
+      adminId: req.user?._id
+    });
+
     const wb = xlsx.readFile(req.file.path);
     const wsName = wb.SheetNames[0];
     const ws = wb.Sheets[wsName];
     const rows = xlsx.utils.sheet_to_json(ws, { defval: "" });
+    logger.info("Structured question file parsed", {
+      fileName: req.file.originalname,
+      sheetName: wsName,
+      rowCount: rows.length
+    });
     const headerKeys = rows.length ? Object.keys(rows[0]) : [];
     const normalizedHeaders = new Set(headerKeys.map(normalizeHeader));
     const aliases = {
@@ -280,9 +296,17 @@ export const uploadStructuredExcel = async (req, res) => {
       );
 
     if (hasStructuredHeaders) {
-      if (!rows.length) return errorResponse(res, 400, "file is empty");
+      if (!rows.length) {
+        logger.warn("Structured question upload rejected because file is empty", {
+          fileName: req.file.originalname,
+          adminId: req.user?._id
+        });
+        return errorResponse(res, 400, "file is empty");
+      }
       const groups = new Map();
-      for (const r of rows) {
+      for (let index = 0; index < rows.length; index++) {
+        const r = rows[index];
+        const rowNumber = index + 2;
         const groupId = String(pickValue(r, aliases.groupId) || "").trim();
         const year = (overrideYear ?? Number(pickValue(r, aliases.year))) || new Date().getFullYear();
         const rawPart = pickValue(r, aliases.part);
@@ -306,12 +330,32 @@ export const uploadStructuredExcel = async (req, res) => {
         const sub_part = isDirectRow ? "a" : parseSubPartFromToken(subPartRaw, "a");
         const sub_text = isDirectRow ? question_text : subTextRaw;
         if (isDirectRow && !answerText && mainQuestionAnswer) answerText = mainQuestionAnswer;
-        if (!year || !question_text || !sub_part || !sub_text)
+        if (!year || !question_text || !sub_part || !sub_text) {
+          logger.warn("Structured question row validation failed", {
+            rowNumber,
+            reason: "year, part, question_text, sub_part, sub_text required",
+            row: r
+          });
           return errorResponse(res, 400, "year, part, question_text, sub_part, sub_text required");
-        if (!["Part 1", "Part 2"].includes(part))
+        }
+        if (!["Part 1", "Part 2"].includes(part)) {
+          logger.warn("Structured question row validation failed", {
+            rowNumber,
+            reason: "invalid part",
+            part,
+            row: r
+          });
           return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
-        if (!["text", "image"].includes(answerType))
+        }
+        if (!["text", "image"].includes(answerType)) {
+          logger.warn("Structured question row validation failed", {
+            rowNumber,
+            reason: "invalid answerType",
+            answerType,
+            row: r
+          });
           return errorResponse(res, 400, "answerType must be 'text' or 'image'");
+        }
         const key = groupId || `${year}-${part}-${question_text}`;
         if (!groups.has(key)) {
           groups.set(key, {
@@ -346,7 +390,14 @@ export const uploadStructuredExcel = async (req, res) => {
       const lines = raw.flat().map(v => String(v || "").trim()).filter(v => v.length > 0);
       const year = overrideYear;
       const part = normalizePart(partNormalized) || partNormalized;
-      if (!year || !part) return errorResponse(res, 400, "year and part required");
+      if (!year || !part) {
+        logger.warn("Structured legacy upload rejected because year or part is missing", {
+          fileName: req.file.originalname,
+          overrideYear,
+          overridePart
+        });
+        return errorResponse(res, 400, "year and part required");
+      }
       const parents = [];
       let i = 0;
       while (i < lines.length) {
@@ -432,11 +483,29 @@ export const uploadStructuredExcel = async (req, res) => {
     }
     if (overrideYear && partNormalized) {
       const p = normalizePart(partNormalized) || partNormalized;
+      logger.info("Structured question upload replacing existing questions", {
+        year: overrideYear,
+        part: p,
+        adminId: req.user?._id
+      });
       await StructuredQuestion.deleteMany({ year: overrideYear, part: p });
     }
     const inserted = await StructuredQuestion.insertMany(docs);
+    logger.info("Structured question upload completed", {
+      fileName: req.file.originalname,
+      insertedCount: inserted.length,
+      parsedDocCount: docs.length,
+      adminId: req.user?._id
+    });
     return successResponse(res, 201, "Structured questions uploaded", { inserted: inserted.length });
   } catch (e) {
+    logger.error("Structured question upload failed", {
+      fileName: req.file?.originalname,
+      path: req.file?.path,
+      adminId: req.user?._id,
+      error: e.message,
+      stack: e.stack
+    });
     return errorResponse(res, 500, e.message);
   }
 };

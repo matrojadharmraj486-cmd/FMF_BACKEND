@@ -9,6 +9,7 @@ import {
   getCollectionQuestions,
   checkStatus,
   removeQuestion,
+  updateBookmarkedQuestion,
   updateCollection,
   deleteCollection
 } from "../controller/bookmark.controller.js";
@@ -34,7 +35,10 @@ router.delete("/:collectionId/remove/:questionId",
   removeQuestion
 );
 
+router.patch("/:collectionId/questions/:questionId", authenticate, updateBookmarkedQuestion);
+
 router.put("/:collectionId", authenticate, updateCollection);
+router.patch("/:collectionId", authenticate, updateCollection);
 
 router.delete("/:collectionId", authenticate, deleteCollection);
 

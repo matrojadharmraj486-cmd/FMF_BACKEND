@@ -55,13 +55,12 @@ const supportTicketSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-supportTicketSchema.pre("validate", function (next) {
+supportTicketSchema.pre("validate", function () {
   if (!this.ticketNumber) {
     const stamp = Date.now().toString().slice(-8);
     const random = Math.random().toString(36).slice(2, 6).toUpperCase();
     this.ticketNumber = `TKT-${stamp}-${random}`;
   }
-  next();
 });
 
 export default mongoose.model("SupportTicket", supportTicketSchema);
