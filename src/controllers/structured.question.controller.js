@@ -77,6 +77,31 @@ const withComputedAnswer = (obj) => {
   return obj;
 };
 
+const getNumericQuestionId = (value) => {
+  const s = String(value || "").trim();
+  const match = s.match(/^Q(\d+)$/i);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+};
+
+const sortStructuredQuestions = (docs) => {
+  const items = docs.map((d, index) => ({ d, index }));
+  items.sort((a, b) => {
+    const aId = getNumericQuestionId(a.d.id);
+    const bId = getNumericQuestionId(b.d.id);
+    const aHas = aId !== null;
+    const bHas = bId !== null;
+    if (aHas && bHas) return aId - bId;
+    if (aHas !== bHas) return aHas ? -1 : 1;
+    const aTime = a.d.createdAt ? new Date(a.d.createdAt).getTime() : 0;
+    const bTime = b.d.createdAt ? new Date(b.d.createdAt).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.index - b.index;
+  });
+  return items.map(item => item.d);
+};
+
 export const getStructuredQuestions = async (req, res) => {
   try {
     const { year, part } = req.query;
@@ -86,7 +111,7 @@ export const getStructuredQuestions = async (req, res) => {
       const p = normalizePart(part) || part;
       filter.part = p;
     }
-    const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
+    const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
@@ -519,7 +544,7 @@ export const adminListStructuredQuestions = async (req, res) => {
       const p = normalizePart(part) || part;
       filter.part = p;
     }
-    const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
+    const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
@@ -567,7 +592,7 @@ export const searchStructuredQuestions = async (req, res) => {
       { main_question_answer: regex }
     ];
 
-    const docs = await StructuredQuestion.find(filter).sort({ year: -1, part: 1, createdAt: -1 });
+    const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
@@ -593,7 +618,7 @@ export const searchStructuredQuestions = async (req, res) => {
 
 export const getStructuredQotdQuestions = async (req, res) => {
   try {
-    const docs = await StructuredQuestion.find({ QOTD: true }).sort({ year: -1, part: 1, createdAt: -1 });
+    const docs = sortStructuredQuestions(await StructuredQuestion.find({ QOTD: true }));
     const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
