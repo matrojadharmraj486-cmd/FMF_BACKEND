@@ -693,6 +693,32 @@ export const deleteStructuredQuestion = async (req, res) => {
   }
 };
 
+export const deleteStructuredQuestionsByYearPart = async (req, res) => {
+  try {
+    const { year, part } = req.query;
+    if (year === undefined || year === null || year === "") {
+      return errorResponse(res, 400, "year required");
+    }
+    const parsedYear = Number(year);
+    if (!Number.isFinite(parsedYear)) {
+      return errorResponse(res, 400, "year must be a number");
+    }
+    if (!part || !String(part).trim()) {
+      return errorResponse(res, 400, "part required");
+    }
+    const parsedPart = normalizePart(part);
+    if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
+      return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
+    }
+
+    const result = await StructuredQuestion.deleteMany({ year: parsedYear, part: parsedPart });
+    const deletedCount = result?.deletedCount || 0;
+    return successResponse(res, 200, "Questions deleted", { deletedCount });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const updateStructuredSub = async (req, res) => {
   try {
     const { id, subId } = req.params;
