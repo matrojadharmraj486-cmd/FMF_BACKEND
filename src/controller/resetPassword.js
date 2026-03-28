@@ -1,16 +1,26 @@
 import User from "../models/User.js";
 import Otp from "../models/Otp.js";
-import { successResponse } from "../utils/response.js";
+import { successResponse, errorResponse } from "../utils/response.js";
+import { hashOtp } from "../utils/otp.js";
 
 export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
-  const otpDoc = await Otp.findOne({ identifier: email, otp });
+  const otpDoc = await Otp.findOne({ identifier: email });
 
   if (!otpDoc)
     return errorResponse(res, 400, "Invalid OTP");
 
+  if (otpDoc.expiresAt < new Date())
+    return errorResponse(res, 400, "OTP expired");
+
+  const hashed = hashOtp(otp, email);
+  if (hashed !== otpDoc.otp)
+    return errorResponse(res, 400, "Invalid OTP");
+
   const user = await User.findOne({ email });
+  if (!user)
+    return errorResponse(res, 404, "User not found");
 
   user.password = newPassword;
   await user.save();
@@ -18,6 +28,6 @@ export const resetPassword = async (req, res) => {
   await Otp.deleteOne({ _id: otpDoc._id });
 
   return successResponse(res, 200, "Password reset successful", {
-  email,
-});
+    email
+  });
 };
