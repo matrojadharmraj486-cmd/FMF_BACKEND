@@ -32,7 +32,7 @@ const normalizeStructuredQuestion = (doc, req) => {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : { ...doc };
   obj.id = obj.id || String(obj._id);
-  obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : undefined;
+  obj.questionId = obj.id;
   obj.sub_questions = (obj.sub_questions || []).map(sq => {
     if (sq.answerType === "image" && sq.answerImage) {
       sq.answerImage = toAbsolute(sq.answerImage, req);
