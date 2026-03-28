@@ -28,11 +28,43 @@ const withComputedAnswer = (obj) => {
   return obj;
 };
 
-const normalizeStructuredQuestion = (doc, req) => {
+const getNumericQuestionId = (value) => {
+  const s = String(value || "").trim();
+  const match = s.match(/^Q(\d+)$/i);
+  if (!match) return null;
+  const n = Number(match[1]);
+  return Number.isFinite(n) ? n : null;
+};
+
+const sortStructuredQuestions = (docs) => {
+  const items = docs.map((d, index) => ({ d, index }));
+  items.sort((a, b) => {
+    const aId = getNumericQuestionId(a.d.id);
+    const bId = getNumericQuestionId(b.d.id);
+    const aHas = aId !== null;
+    const bHas = bId !== null;
+    if (aHas && bHas) return aId - bId;
+    if (aHas !== bHas) return aHas ? -1 : 1;
+    const aTime = a.d.createdAt ? new Date(a.d.createdAt).getTime() : 0;
+    const bTime = b.d.createdAt ? new Date(b.d.createdAt).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.index - b.index;
+  });
+  return items.map(item => item.d);
+};
+
+const normalizeStructuredQuestion = (doc, req, fallbackQuestionId) => {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : { ...doc };
   obj.id = obj.id || String(obj._id);
-  obj.questionId = obj.id;
+  const hasNumericId = obj.id && /^Q\d+$/i.test(obj.id);
+  if (hasNumericId) {
+    obj.questionId = obj.id;
+  } else if (fallbackQuestionId) {
+    obj.questionId = fallbackQuestionId;
+  } else {
+    obj.questionId = obj.id;
+  }
   obj.sub_questions = (obj.sub_questions || []).map(sq => {
     if (sq.answerType === "image" && sq.answerImage) {
       sq.answerImage = toAbsolute(sq.answerImage, req);
@@ -51,6 +83,29 @@ const toStoredQuestion = (questionDoc, req) => {
     question_text: normalizedQuestion.question_text,
     sub_questions: normalizedQuestion.sub_questions
   };
+};
+
+const buildFallbackQuestionIdMap = async (docs) => {
+  const groups = new Map();
+  for (const d of docs) {
+    const id = d.id || d._id;
+    if (id && /^Q\d+$/i.test(String(id))) continue;
+    const key = `${d.year}||${d.part}`;
+    if (!groups.has(key)) groups.set(key, { year: d.year, part: d.part });
+  }
+
+  const map = new Map();
+  for (const group of groups.values()) {
+    const all = await StructuredQuestion.find(
+      { year: group.year, part: group.part },
+      { id: 1, createdAt: 1 }
+    );
+    const sorted = sortStructuredQuestions(all);
+    for (let i = 0; i < sorted.length; i++) {
+      map.set(String(sorted[i]._id), `Q${i + 1}`);
+    }
+  }
+  return map;
 };
 
 /* Create Collection */
@@ -174,7 +229,12 @@ export const checkStatus = async (req, res) => {
   const questionDoc = await StructuredQuestion.findOne({
     $or: [{ _id: questionId }, { id: questionId }]
   });
-  const question = normalizeStructuredQuestion(questionDoc, req);
+  let question = normalizeStructuredQuestion(questionDoc, req);
+  if (question && !/^Q\d+$/i.test(String(question.id || ""))) {
+    const fallbackMap = await buildFallbackQuestionIdMap([questionDoc]);
+    const fallbackId = fallbackMap.get(String(questionDoc._id));
+    question = normalizeStructuredQuestion(questionDoc, req, fallbackId);
+  }
 
   return successResponse(res, 200, "Status", {
     bookmarked: collections.length > 0,
@@ -214,9 +274,12 @@ export const getCollectionQuestions = async (req, res) => {
     ]
   });
 
+  const fallbackMap = await buildFallbackQuestionIdMap(docs);
+
   const mapped = new Map();
   for (const d of docs) {
-    const normalized = normalizeStructuredQuestion(d, req);
+    const fallbackId = fallbackMap.get(String(d._id));
+    const normalized = normalizeStructuredQuestion(d, req, fallbackId);
     if (!normalized) continue;
     mapped.set(String(d._id), normalized);
     if (normalized.id) mapped.set(String(normalized.id), normalized);
