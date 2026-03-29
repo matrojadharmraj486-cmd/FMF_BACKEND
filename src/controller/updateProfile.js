@@ -10,8 +10,35 @@ export const updateProfile = async (req, res) => {
     if (!user)
       return errorResponse(res, 404, "User not found");
 
-    user.fullName = req.body.fullName || user.fullName;
-    user.city = req.body.city || user.city;
+    const {
+      fullName,
+      email,
+      mobileNumber,
+      gender,
+      age,
+      state,
+      district,
+      city
+    } = req.body || {};
+
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email, _id: { $ne: user._id } });
+      if (exists) return errorResponse(res, 400, "Email already in use");
+      user.email = email;
+    }
+
+    if (mobileNumber && mobileNumber !== user.mobileNumber) {
+      const exists = await User.findOne({ mobileNumber, _id: { $ne: user._id } });
+      if (exists) return errorResponse(res, 400, "Mobile number already in use");
+      user.mobileNumber = mobileNumber;
+    }
+
+    user.fullName = fullName || user.fullName;
+    user.gender = gender || user.gender;
+    user.age = age ?? user.age;
+    user.state = state || user.state;
+    user.district = district || user.district;
+    user.city = city || user.city;
 
     if (req.file) {
       user.profileImg = `/uploads/${req.file.filename}`;
