@@ -1,7 +1,7 @@
 import fs from "fs";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
-import { uploadImageFile } from "../utils/cloudinary.js";
+import { uploadImageData, uploadImageFile } from "../utils/cloudinary.js";
 
 export const updateProfile = async (req, res) => {
 
@@ -50,6 +50,15 @@ export const updateProfile = async (req, res) => {
       } catch {
         // ignore cleanup errors
       }
+    } else if (req.body.photoBase64) {
+      const raw = String(req.body.photoBase64 || "").trim();
+      if (raw) {
+        const dataUri = raw.startsWith("data:")
+          ? raw
+          : `data:image/jpeg;base64,${raw}`;
+        const uploaded = await uploadImageData(dataUri, "fmf/profiles");
+        user.profileImg = uploaded.url;
+      }
     }
 
     await user.save();
@@ -68,7 +77,11 @@ export const getMyProfile = async (req, res) => {
     if (!user)
       return errorResponse(res, 404, "User not found");
 
-    return successResponse(res, 200, "Profile fetched", user);
+    const data = {
+      ...user.toObject(),
+      photoUrl: user.profileImg
+    };
+    return successResponse(res, 200, "Profile fetched", data);
   } catch (err) {
     return errorResponse(res, 500, err.message);
   }

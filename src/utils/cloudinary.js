@@ -25,3 +25,12 @@ export const uploadImageFile = async (filePath, folder = "fmf") => {
   });
   return { url: result.secure_url, publicId: result.public_id };
 };
+
+export const uploadImageData = async (dataUri, folder = "fmf") => {
+  ensureCloudinaryConfig();
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    resource_type: "image"
+  });
+  return { url: result.secure_url, publicId: result.public_id };
+};
