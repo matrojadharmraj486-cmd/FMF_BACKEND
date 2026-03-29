@@ -1,5 +1,7 @@
+import fs from "fs";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { uploadImageFile } from "../utils/cloudinary.js";
 
 export const updateProfile = async (req, res) => {
 
@@ -41,7 +43,13 @@ export const updateProfile = async (req, res) => {
     user.city = city || user.city;
 
     if (req.file) {
-      user.profileImg = `/uploads/${req.file.filename}`;
+      const uploaded = await uploadImageFile(req.file.path, "fmf/profiles");
+      user.profileImg = uploaded.url;
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch {
+        // ignore cleanup errors
+      }
     }
 
     await user.save();
