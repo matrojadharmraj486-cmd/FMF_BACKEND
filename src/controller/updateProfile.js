@@ -61,3 +61,15 @@ export const updateProfile = async (req, res) => {
   }
 
 };
+
+export const getMyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user)
+      return errorResponse(res, 404, "User not found");
+
+    return successResponse(res, 200, "Profile fetched", user);
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
+  }
+};

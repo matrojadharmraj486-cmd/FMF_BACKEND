@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
 
-import { updateProfile } from "../controller/updateProfile.js";
+import { getMyProfile, updateProfile } from "../controller/updateProfile.js";
 
 const router = express.Router();
 
@@ -11,6 +11,12 @@ router.put(
   authenticate,
   upload.single("photo"),
   updateProfile
+);
+
+router.get(
+  "/profile",
+  authenticate,
+  getMyProfile
 );
 
 export default router;
