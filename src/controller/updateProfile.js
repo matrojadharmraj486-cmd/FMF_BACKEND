@@ -79,7 +79,7 @@ export const getMyProfile = async (req, res) => {
 
     const data = {
       ...user.toObject(),
-      photoUrl: user.profileImg
+      photoUrl: user.profileImg || null
     };
     return successResponse(res, 200, "Profile fetched", data);
   } catch (err) {
