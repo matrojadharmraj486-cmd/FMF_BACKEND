@@ -28,6 +28,7 @@ import adminSupportTicketRoutes from "./routes/admin.support.ticket.routes.js";
 
 
 const app = express();
+const jsonBodyLimit = process.env.JSON_BODY_LIMIT || "10mb";
 const uploadsPath = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
   : path.join(os.tmpdir(), "fmf-uploads");
@@ -35,12 +36,13 @@ const uploadsPath = process.env.UPLOAD_DIR
 app.set("trust proxy", 1);
 app.use(
   express.json({
+    limit: jsonBodyLimit,
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
   })
 );
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: jsonBodyLimit }));
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },

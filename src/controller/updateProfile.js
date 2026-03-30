@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { uploadImageData, uploadImageFile } from "../utils/cloudinary.js";
 
 export const updateProfile = async (req, res) => {
-
+console.log("update profile API BODY", req?.body)
   try {
 
     const user = await User.findById(req.user._id);
