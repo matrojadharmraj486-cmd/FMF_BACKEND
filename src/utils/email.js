@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logger } from "./logger.js";
 
 const buildTransport = () => {
   const service = process.env.EMAIL_SERVICE;
@@ -36,11 +37,32 @@ export const sendSmtpEmail = async ({ to, subject, text, html }) => {
   const transporter = buildTransport();
   const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
-  return transporter.sendMail({
+  logger.info("SMTP sendMail starting", {
+    to,
+    from,
+    subject,
+    service: process.env.EMAIL_SERVICE || null,
+    host: process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
+    secure: process.env.EMAIL_SECURE
+      ? String(process.env.EMAIL_SECURE).toLowerCase() === "true"
+      : false
+  });
+
+  const result = await transporter.sendMail({
     from,
     to,
     subject,
     text,
     html
   });
+
+  logger.info("SMTP sendMail completed", {
+    to,
+    messageId: result.messageId || null,
+    accepted: result.accepted || [],
+    rejected: result.rejected || []
+  });
+
+  return result;
 };
