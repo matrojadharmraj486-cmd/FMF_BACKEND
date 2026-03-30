@@ -8,10 +8,17 @@ const buildTransport = () => {
   const secure = process.env.EMAIL_SECURE
     ? String(process.env.EMAIL_SECURE).toLowerCase() === "true"
     : undefined;
+  const connectionTimeout = Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000);
+  const greetingTimeout = Number(process.env.EMAIL_GREETING_TIMEOUT || 10000);
+  const socketTimeout = Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000);
 
   if (service) {
     return nodemailer.createTransport({
       service,
+      family: 4,
+      connectionTimeout,
+      greetingTimeout,
+      socketTimeout,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -23,6 +30,10 @@ const buildTransport = () => {
     host: host || "smtp.gmail.com",
     port: port || 587,
     secure: secure ?? false,
+    family: 4,
+    connectionTimeout,
+    greetingTimeout,
+    socketTimeout,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
@@ -44,6 +55,10 @@ export const sendSmtpEmail = async ({ to, subject, text, html }) => {
     service: process.env.EMAIL_SERVICE || null,
     host: process.env.EMAIL_HOST || "smtp.gmail.com",
     port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
+    family: 4,
+    connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000),
+    greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
+    socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000),
     secure: process.env.EMAIL_SECURE
       ? String(process.env.EMAIL_SECURE).toLowerCase() === "true"
       : false
