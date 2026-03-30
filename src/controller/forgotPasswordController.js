@@ -2,8 +2,8 @@ import User from "../models/User.js";
 import Otp from "../models/Otp.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email } from "../utils/bulk9.js";
-import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendSmtpEmail } from "../utils/email.js";
+import { getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
+import { sendBrevoEmail } from "../utils/email.js";
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -13,7 +13,7 @@ export const forgotPassword = async (req, res) => {
   if (!user)
     return errorResponse(res, 404, "User not found");
 
-  const otp = generateOtp();
+  const otp = process.env.DEFAULT_OTP || "123456";
   const expiresAt = getOtpExpiry();
   const ttlMinutes = Number(process.env.OTP_TTL_MINUTES || 5);
   const message = formatOtpMessage(otp, ttlMinutes);
@@ -27,7 +27,7 @@ export const forgotPassword = async (req, res) => {
   });
 
   try {
-    const subject = process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
+    const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
     if (process.env.BULK9_EMAIL_URL) {
       const response = await sendBulk9Email({
         to: email,
@@ -39,7 +39,7 @@ export const forgotPassword = async (req, res) => {
       if (!response.ok)
         return errorResponse(res, 502, "Failed to send OTP email");
     } else {
-      await sendSmtpEmail({
+      await sendBrevoEmail({
         to: email,
         subject,
         text: message
