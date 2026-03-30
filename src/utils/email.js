@@ -1,83 +1,52 @@
-import nodemailer from "nodemailer";
 import { logger } from "./logger.js";
+import { postJson } from "./httpClient.js";
 
-const buildTransport = () => {
-  const service = process.env.EMAIL_SERVICE;
-  const host = process.env.EMAIL_HOST;
-  const port = process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined;
-  const secure = process.env.EMAIL_SECURE
-    ? String(process.env.EMAIL_SECURE).toLowerCase() === "true"
-    : undefined;
-  const connectionTimeout = Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000);
-  const greetingTimeout = Number(process.env.EMAIL_GREETING_TIMEOUT || 10000);
-  const socketTimeout = Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000);
+export const sendBrevoEmail = async ({ to, subject, text, html }) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  const senderName = process.env.BREVO_SENDER_NAME || "FMF";
+  const apiUrl = process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email";
 
-  if (service) {
-    return nodemailer.createTransport({
-      service,
-      family: 4,
-      connectionTimeout,
-      greetingTimeout,
-      socketTimeout,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+  if (!apiKey || !senderEmail)
+    throw new Error("BREVO_API_KEY and BREVO_SENDER_EMAIL are required for Brevo email");
+
+  const payload = {
+    sender: {
+      email: senderEmail,
+      name: senderName
+    },
+    to: [{ email: to }],
+    subject,
+    textContent: text,
+    htmlContent: html
+  };
+
+  logger.info("Brevo email send starting", {
+    to,
+    from: senderEmail,
+    senderName,
+    subject,
+    apiUrl
+  });
+
+  const response = await postJson(apiUrl, payload, {
+    "api-key": apiKey,
+    accept: "application/json"
+  });
+
+  logger.info("Brevo email send completed", {
+    to,
+    status: response.status,
+    ok: response.ok,
+    data: response.ok ? response.data : undefined
+  });
+
+  if (!response.ok) {
+    const details = typeof response.data === "string"
+      ? response.data
+      : JSON.stringify(response.data);
+    throw new Error(`Brevo email failed with status ${response.status}: ${details}`);
   }
 
-  return nodemailer.createTransport({
-    host: host || "smtp.gmail.com",
-    port: port || 587,
-    secure: secure ?? false,
-    family: 4,
-    connectionTimeout,
-    greetingTimeout,
-    socketTimeout,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-};
-
-export const sendSmtpEmail = async ({ to, subject, text, html }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)
-    throw new Error("EMAIL_USER and EMAIL_PASS are required for SMTP email");
-
-  const transporter = buildTransport();
-  const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-
-  logger.info("SMTP sendMail starting", {
-    to,
-    from,
-    subject,
-    service: process.env.EMAIL_SERVICE || null,
-    host: process.env.EMAIL_HOST || "smtp.gmail.com",
-    port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
-    family: 4,
-    connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000),
-    greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
-    socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000),
-    secure: process.env.EMAIL_SECURE
-      ? String(process.env.EMAIL_SECURE).toLowerCase() === "true"
-      : false
-  });
-
-  const result = await transporter.sendMail({
-    from,
-    to,
-    subject,
-    text,
-    html
-  });
-
-  logger.info("SMTP sendMail completed", {
-    to,
-    messageId: result.messageId || null,
-    accepted: result.accepted || [],
-    rejected: result.rejected || []
-  });
-
-  return result;
+  return response.data;
 };

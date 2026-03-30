@@ -16,6 +16,7 @@ export const postJson = async (url, body, headers = {}) => {
   const payload = JSON.stringify(body ?? {});
   const isHttps = target.protocol === "https:";
   const client = isHttps ? https : http;
+  const timeoutMs = Number(process.env.HTTP_CLIENT_TIMEOUT || 15000);
 
   const options = {
     method: "POST",
@@ -45,6 +46,9 @@ export const postJson = async (url, body, headers = {}) => {
       });
     });
 
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Request timeout after ${timeoutMs}ms`));
+    });
     req.on("error", reject);
     req.write(payload);
     req.end();
@@ -57,6 +61,7 @@ export const getJson = async (url, headers = {}) => {
   const target = new URL(url);
   const isHttps = target.protocol === "https:";
   const client = isHttps ? https : http;
+  const timeoutMs = Number(process.env.HTTP_CLIENT_TIMEOUT || 15000);
 
   const options = {
     method: "GET",
@@ -84,6 +89,9 @@ export const getJson = async (url, headers = {}) => {
       });
     });
 
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Request timeout after ${timeoutMs}ms`));
+    });
     req.on("error", reject);
     req.end();
   });

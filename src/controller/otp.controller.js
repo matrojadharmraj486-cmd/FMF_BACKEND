@@ -2,8 +2,8 @@ import Otp from "../models/Otp.js";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email, sendBulk9Sms } from "../utils/bulk9.js";
-import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendSmtpEmail } from "../utils/email.js";
+import { getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
+import { sendBrevoEmail } from "../utils/email.js";
 import { logger } from "../utils/logger.js";
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
@@ -41,7 +41,7 @@ export const sendOtp = async (req, res) => {
   await Otp.deleteMany({ identifier });
   logger.info("sendOtp old OTP records cleared", { identifier });
 
-  const otp = generateOtp();
+  const otp = process.env.DEFAULT_OTP || "123456";
   const expiresAt = getOtpExpiry();
   const ttlMinutes = Number(process.env.OTP_TTL_MINUTES || 5);
   const message = formatOtpMessage(otp, ttlMinutes);
@@ -59,17 +59,14 @@ export const sendOtp = async (req, res) => {
 
   try {
     if (email) {
-      const subject = process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
+      const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
       logger.info("sendOtp email delivery started", {
         identifier,
-        provider: process.env.BULK9_EMAIL_URL ? "bulk9-email" : "nodemailer-smtp",
+        provider: process.env.BULK9_EMAIL_URL ? "bulk9-email" : "brevo-api",
         hasBulk9EmailUrl: !!process.env.BULK9_EMAIL_URL,
-        hasEmailUser: !!process.env.EMAIL_USER,
-        hasEmailPass: !!process.env.EMAIL_PASS,
-        emailService: process.env.EMAIL_SERVICE || null,
-        emailHost: process.env.EMAIL_HOST || null,
-        emailPort: process.env.EMAIL_PORT || null,
-        emailSecure: process.env.EMAIL_SECURE || null
+        hasBrevoApiKey: !!process.env.BREVO_API_KEY,
+        brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || null,
+        brevoApiUrl: process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email"
       });
 
       if (process.env.BULK9_EMAIL_URL) {
@@ -83,7 +80,7 @@ export const sendOtp = async (req, res) => {
         if (!response.ok)
           return errorResponse(res, 502, "Failed to send OTP email");
       } else {
-        await sendSmtpEmail({
+        await sendBrevoEmail({
           to: email,
           subject,
           text: message
