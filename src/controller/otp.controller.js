@@ -2,7 +2,7 @@ import Otp from "../models/Otp.js";
 import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email, sendBulk9Sms } from "../utils/bulk9.js";
-import { getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
+import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
 import { sendBrevoEmail } from "../utils/email.js";
 import { logger } from "../utils/logger.js";
 
@@ -41,7 +41,7 @@ export const sendOtp = async (req, res) => {
   await Otp.deleteMany({ identifier });
   logger.info("sendOtp old OTP records cleared", { identifier });
 
-  const otp = process.env.DEFAULT_OTP || "123456";
+  const otp = generateOtp();
   const expiresAt = getOtpExpiry();
   const ttlMinutes = Number(process.env.OTP_TTL_MINUTES || 5);
   const message = formatOtpMessage(otp, ttlMinutes);
