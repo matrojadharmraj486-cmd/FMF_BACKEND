@@ -8,14 +8,20 @@ import { logger } from "../utils/logger.js";
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
 const isMobile = (value) => /^\d{10}$/.test(value || "");
+const normalizeIdentifier = (value) => {
+  const raw = String(value || "").trim();
+  return isEmail(raw) ? raw.toLowerCase() : raw;
+};
 
 export const sendOtp = async (req, res) => {
   const { email, mobileNumber } = req.body;
-  const identifier = email || mobileNumber;
+  const identifier = normalizeIdentifier(email || mobileNumber);
+  const normalizedEmail = email ? normalizeIdentifier(email) : "";
+  const normalizedMobileNumber = mobileNumber ? normalizeIdentifier(mobileNumber) : "";
 
   logger.info("sendOtp request received", {
-    hasEmail: !!email,
-    hasMobileNumber: !!mobileNumber,
+    hasEmail: !!normalizedEmail,
+    hasMobileNumber: !!normalizedMobileNumber,
     identifier,
     contentType: req.headers["content-type"] || null
   });
@@ -23,10 +29,10 @@ export const sendOtp = async (req, res) => {
   if (!identifier)
     return errorResponse(res, 400, "Email or mobile required");
 
-  if (email && !isEmail(email))
+  if (normalizedEmail && !isEmail(normalizedEmail))
     return errorResponse(res, 400, "Invalid email address");
 
-  if (mobileNumber && !isMobile(mobileNumber))
+  if (normalizedMobileNumber && !isMobile(normalizedMobileNumber))
     return errorResponse(res, 400, "Invalid mobile number");
 
   const user = await User.findOne({
@@ -58,7 +64,7 @@ export const sendOtp = async (req, res) => {
   });
 
   try {
-    if (email) {
+    if (normalizedEmail) {
       const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
       logger.info("sendOtp email delivery started", {
         identifier,
@@ -71,7 +77,7 @@ export const sendOtp = async (req, res) => {
 
       if (process.env.BULK9_EMAIL_URL) {
         const response = await sendBulk9Email({
-          to: email,
+          to: normalizedEmail,
           subject,
           message,
           otp
@@ -81,7 +87,7 @@ export const sendOtp = async (req, res) => {
           return errorResponse(res, 502, "Failed to send OTP email");
       } else {
         await sendBrevoEmail({
-          to: email,
+          to: normalizedEmail,
           subject,
           text: message
         });
@@ -97,7 +103,7 @@ export const sendOtp = async (req, res) => {
       });
 
       const response = await sendBulk9Sms({
-        to: mobileNumber,
+        to: normalizedMobileNumber,
         message,
         otp
       });
@@ -113,29 +119,30 @@ export const sendOtp = async (req, res) => {
     }
   } catch (err) {
     logger.error("sendOtp delivery failed", {
-      identifier,
-      sentOn: email ? "EMAIL" : "MOBILE",
-      error: err.message,
-      stack: err.stack
-    });
+        identifier,
+        sentOn: normalizedEmail ? "EMAIL" : "MOBILE",
+        error: err.message,
+        stack: err.stack
+      });
     return errorResponse(res, 502, err.message || "Failed to send OTP");
   }
 
   logger.info("sendOtp completed successfully", {
     identifier,
     isUserExist: !!user,
-    sentOn: email ? "EMAIL" : "MOBILE"
+    sentOn: normalizedEmail ? "EMAIL" : "MOBILE"
   });
 
   return successResponse(res, 200, "OTP sent successfully", {
     identifier,
     isUserExist: !!user,
-    sentOn: email ? "EMAIL" : "MOBILE"
+    sentOn: normalizedEmail ? "EMAIL" : "MOBILE"
   });
 };
 
 export const verifyOtp = async (req, res) => {
-  const { identifier, otp } = req.body;
+  const { otp } = req.body;
+  const identifier = normalizeIdentifier(req.body.identifier);
 
   const otpDoc = await Otp.findOne({ identifier });
   const isMaster = String(otp) === "123456";

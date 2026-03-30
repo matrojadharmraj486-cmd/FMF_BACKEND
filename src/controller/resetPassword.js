@@ -3,8 +3,11 @@ import Otp from "../models/Otp.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { hashOtp } from "../utils/otp.js";
 
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+
 export const resetPassword = async (req, res) => {
-  const { email, otp, newPassword } = req.body;
+  const { otp, newPassword } = req.body;
+  const email = normalizeEmail(req.body.email);
 
   const otpDoc = await Otp.findOne({ identifier: email });
   const isMaster = String(otp) === "123456";

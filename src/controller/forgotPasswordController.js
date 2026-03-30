@@ -5,8 +5,10 @@ import { sendBulk9Email } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
 import { sendBrevoEmail } from "../utils/email.js";
 
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+
 export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const email = normalizeEmail(req.body.email);
 
   const user = await User.findOne({ email });
 
