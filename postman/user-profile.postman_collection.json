@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "FMF User Profile APIs",
+    "_postman_id": "9de69d6f-865e-46c8-9b2b-1b23ac4685d2",
+    "description": "Postman collection for the current GET and PUT /api/user/profile endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get My Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/user/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "profile"
+          ]
+        },
+        "description": "Fetch the authenticated user's profile."
+      },
+      "response": []
+    },
+    {
+      "name": "Update My Profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "fullName",
+              "value": "Dharm Test User",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "dharm@example.com",
+              "type": "text"
+            },
+            {
+              "key": "mobileNumber",
+              "value": "9876543210",
+              "type": "text"
+            },
+            {
+              "key": "gender",
+              "value": "Male",
+              "type": "text"
+            },
+            {
+              "key": "age",
+              "value": "28",
+              "type": "text"
+            },
+            {
+              "key": "state[id]",
+              "value": "GJ",
+              "type": "text"
+            },
+            {
+              "key": "state[name]",
+              "value": "Gujarat",
+              "type": "text"
+            },
+            {
+              "key": "district[id]",
+              "value": "AHM",
+              "type": "text"
+            },
+            {
+              "key": "district[name]",
+              "value": "Ahmedabad",
+              "type": "text"
+            },
+            {
+              "key": "city",
+              "value": "Ahmedabad",
+              "type": "text"
+            },
+            {
+              "key": "photoBase64",
+              "value": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
+              "type": "text",
+              "disabled": true
+            },
+            {
+              "key": "photo",
+              "type": "file",
+              "disabled": true,
+              "src": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/user/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "profile"
+          ]
+        },
+        "description": "Update the authenticated user's profile. Use either `photo` file upload or `photoBase64` text value."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
