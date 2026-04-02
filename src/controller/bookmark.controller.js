@@ -90,14 +90,16 @@ const buildFallbackQuestionIdMap = async (docs) => {
   for (const d of docs) {
     const id = d.id || d._id;
     if (id && /^Q\d+$/i.test(String(id))) continue;
-    const key = `${d.year}||${d.part}`;
-    if (!groups.has(key)) groups.set(key, { year: d.year, part: d.part });
+    const key = `${d.year}||${d.part}||${d.paper || ""}`;
+    if (!groups.has(key)) groups.set(key, { year: d.year, part: d.part, paper: d.paper });
   }
 
   const map = new Map();
   for (const group of groups.values()) {
+    const filter = { year: group.year, part: group.part };
+    if (group.paper) filter.paper = group.paper;
     const all = await StructuredQuestion.find(
-      { year: group.year, part: group.part },
+      filter,
       { id: 1, createdAt: 1 }
     );
     const sorted = sortStructuredQuestions(all);

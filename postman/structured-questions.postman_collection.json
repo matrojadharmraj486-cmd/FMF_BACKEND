@@ -1,0 +1,117 @@
+﻿{
+  "info": {
+    "_postman_id": "c0c9f4f6-3a68-4f1f-90c2-70f1f2f3f3a1",
+    "name": "Structured Questions (Year/Part/Paper)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Years",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/years",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "years"]
+        }
+      }
+    },
+    {
+      "name": "List Parts (by Year)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/parts?year=2026",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "parts"],
+          "query": [
+            { "key": "year", "value": "2026" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Papers (by Year + Part)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/papers?year=2026&part=Part%201",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "papers"],
+          "query": [
+            { "key": "year", "value": "2026" },
+            { "key": "part", "value": "Part 1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Questions (Year/Part/Paper)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions?year=2026&part=Part%201&paper=Paper%201",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions"],
+          "query": [
+            { "key": "year", "value": "2026" },
+            { "key": "part", "value": "Part 1" },
+            { "key": "paper", "value": "Paper 1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Search Questions (Year/Part/Paper)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/search?year=2026&part=Part%201&paper=Paper%201&search=fever",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "search"],
+          "query": [
+            { "key": "year", "value": "2026" },
+            { "key": "part", "value": "Part 1" },
+            { "key": "paper", "value": "Paper 1" },
+            { "key": "search", "value": "fever" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Upload Structured Excel (Year/Part/Paper)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file" },
+            { "key": "year", "value": "2026", "type": "text" },
+            { "key": "part", "value": "Part 1", "type": "text" },
+            { "key": "paper", "value": "Paper 1", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/questions-structured/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "questions-structured", "upload"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ]
+}

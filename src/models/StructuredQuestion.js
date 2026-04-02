@@ -12,6 +12,7 @@ const structuredQuestionSchema = new mongoose.Schema({
   id: { type: String }, // optional external identifier
   year: { type: Number, required: true },
   part: { type: String, enum: ["Part 1", "Part 2"], required: true },
+  paper: { type: String }, // e.g., "Paper 1"
   question_text: { type: String, required: true },
   isDirect: { type: Boolean, default: false },
   main_question_answer: [{ type: String }],

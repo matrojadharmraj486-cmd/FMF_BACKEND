@@ -16,6 +16,31 @@ const normalizePart = (raw) => {
   return null;
 };
 
+const DEFAULT_PAPERS = ["Paper 1", "Paper 2", "Paper 3", "Paper 4"];
+
+const normalizePaper = (raw) => {
+  const s = String(raw || "").trim().toLowerCase().replace(/\s+/g, "").replace(/-/g, "");
+  if (!s) return null;
+  if (["paper1", "p1", "1", "i", "paperi"].includes(s)) return "Paper 1";
+  if (["paper2", "p2", "2", "ii", "paperii"].includes(s)) return "Paper 2";
+  if (["paper3", "p3", "3", "iii", "paperiii"].includes(s)) return "Paper 3";
+  if (["paper4", "p4", "4", "iv", "paperiv"].includes(s)) return "Paper 4";
+  return null;
+};
+
+const buildPaperPredicate = (paper) => {
+  const p = normalizePaper(paper) || String(paper || "").trim();
+  if (!p) return null;
+  return {
+    $or: [
+      { paper: p },
+      { paper: { $exists: false } },
+      { paper: null },
+      { paper: "" }
+    ]
+  };
+};
+
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const normalizeHeader = (key) =>
@@ -104,12 +129,16 @@ const sortStructuredQuestions = (docs) => {
 
 export const getStructuredQuestions = async (req, res) => {
   try {
-    const { year, part } = req.query;
+    const { year, part, paper } = req.query;
     const filter = {};
     if (year) filter.year = Number(year);
     if (part) {
       const p = normalizePart(part) || part;
       filter.part = p;
+    }
+    const paperPredicate = buildPaperPredicate(paper);
+    if (paperPredicate) {
+      filter.$and = (filter.$and || []).concat([paperPredicate]);
     }
     const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
@@ -139,6 +168,7 @@ export const createStructuredQuestion = async (req, res) => {
     const {
       year,
       part,
+      paper,
       question_text,
       sub_questions,
       id,
@@ -161,6 +191,14 @@ export const createStructuredQuestion = async (req, res) => {
     const parsedPart = normalizePart(part);
     if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
       return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
+    }
+
+    let parsedPaper = undefined;
+    if (paper !== undefined && paper !== null && String(paper).trim()) {
+      parsedPaper = normalizePaper(paper);
+      if (!parsedPaper) {
+        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
+      }
     }
 
     if (!question_text || !String(question_text).trim()) {
@@ -219,6 +257,7 @@ export const createStructuredQuestion = async (req, res) => {
     const payload = {
       year: parsedYear,
       part: parsedPart,
+      ...(parsedPaper ? { paper: parsedPaper } : {}),
       question_text: String(question_text).trim(),
       sub_questions: normalizedSubs
     };
@@ -272,6 +311,7 @@ export const uploadStructuredExcel = async (req, res) => {
     if (!req.file) return errorResponse(res, 400, "file required");
     const overrideYear = req.body.year ? Number(req.body.year) : undefined;
     const overridePart = normalizePart(req.body.part) || req.body.part;
+    const overridePaper = normalizePaper(req.body.paper) || req.body.paper;
 
     logger.info("Structured question upload started", {
       fileName: req.file.originalname,
@@ -279,6 +319,7 @@ export const uploadStructuredExcel = async (req, res) => {
       path: req.file.path,
       overrideYear,
       overridePart,
+      overridePaper,
       adminId: req.user?._id
     });
 
@@ -297,6 +338,7 @@ export const uploadStructuredExcel = async (req, res) => {
       groupId: ["groupId", "group_id", "group", "question_id", "questionid", "qid", "id"],
       year: ["year", "exam_year", "session_year"],
       part: ["part", "paper_part", "module_part"],
+      paper: ["paper", "paper_no", "paper_number", "papername"],
       questionText: ["question_text", "questionText", "question", "stem", "case_scenario", "clinical_scenario", "main_question_text"],
       mainQuestionAnswer: ["main_question_answer"],
       subPart: ["sub_part", "subPart", "subquestion_part", "part_label", "sub_q_part", "sub_question_no"],
@@ -309,6 +351,7 @@ export const uploadStructuredExcel = async (req, res) => {
     };
     let docs = [];
     const partNormalized = normalizePart(overridePart) || overridePart;
+    const paperNormalized = normalizePaper(overridePaper) || overridePaper;
     const parseNumberToLetter = (n) => {
       const i = parseInt(n, 10);
       return String.fromCharCode(96 + (isNaN(i) ? 1 : i));
@@ -337,6 +380,9 @@ export const uploadStructuredExcel = async (req, res) => {
         const rawPart = pickValue(r, aliases.part);
         const partCandidate = partNormalized ?? (normalizePart(rawPart) || String(rawPart || "").trim() || "Part 1");
         const part = normalizePart(partCandidate) || partCandidate;
+        const rawPaper = pickValue(r, aliases.paper);
+        const paperCandidate = paperNormalized ?? (normalizePaper(rawPaper) || String(rawPaper || "").trim());
+        const paper = normalizePaper(paperCandidate) || (paperCandidate ? String(paperCandidate).trim() : undefined);
         const question_text = String(pickValue(r, aliases.questionText) || "").trim();
         const mainQuestionAnswer = String(pickValue(r, aliases.mainQuestionAnswer) || "").trim();
         const subPartRaw = String(pickValue(r, aliases.subPart) || "").trim();
@@ -372,6 +418,15 @@ export const uploadStructuredExcel = async (req, res) => {
           });
           return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
         }
+        if (paper && !DEFAULT_PAPERS.includes(paper)) {
+          logger.warn("Structured question row validation failed", {
+            rowNumber,
+            reason: "invalid paper",
+            paper,
+            row: r
+          });
+          return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
+        }
         if (!["text", "image"].includes(answerType)) {
           logger.warn("Structured question row validation failed", {
             rowNumber,
@@ -381,12 +436,13 @@ export const uploadStructuredExcel = async (req, res) => {
           });
           return errorResponse(res, 400, "answerType must be 'text' or 'image'");
         }
-        const key = groupId || `${year}-${part}-${question_text}`;
+        const key = groupId || `${year}-${part}-${paper || ""}-${question_text}`;
         if (!groups.has(key)) {
           groups.set(key, {
             id: groupId || undefined,
             year,
             part,
+            ...(paper ? { paper } : {}),
             question_text,
             isDirect: isDirectRow,
             main_question_answer: [],
@@ -415,6 +471,7 @@ export const uploadStructuredExcel = async (req, res) => {
       const lines = raw.flat().map(v => String(v || "").trim()).filter(v => v.length > 0);
       const year = overrideYear;
       const part = normalizePart(partNormalized) || partNormalized;
+      const paper = normalizePaper(paperNormalized) || (paperNormalized ? String(paperNormalized).trim() : undefined);
       if (!year || !part) {
         logger.warn("Structured legacy upload rejected because year or part is missing", {
           fileName: req.file.originalname,
@@ -422,6 +479,15 @@ export const uploadStructuredExcel = async (req, res) => {
           overridePart
         });
         return errorResponse(res, 400, "year and part required");
+      }
+      if (paper && !DEFAULT_PAPERS.includes(paper)) {
+        logger.warn("Structured legacy upload rejected because paper is invalid", {
+          fileName: req.file.originalname,
+          overrideYear,
+          overridePart,
+          overridePaper: paper
+        });
+        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
       }
       const parents = [];
       let i = 0;
@@ -441,6 +507,7 @@ export const uploadStructuredExcel = async (req, res) => {
             id: undefined,
             year,
             part,
+            ...(paper ? { paper } : {}),
             question_text: q,
             isDirect: true,
             sub_questions: [{ part: "a", text: q, answerType: "text", answer: ans }]
@@ -492,13 +559,16 @@ export const uploadStructuredExcel = async (req, res) => {
             }
           }
           parents.push({ id: undefined, year, part, question_text: qText, isDirect: false, sub_questions: subs });
+          if (paper) parents[parents.length - 1].paper = paper;
           i = j;
           continue;
         }
         if (token.toLowerCase() === "image") {
           const q = lines[i + 1] || "";
           const url = lines[i + 3] || lines[i + 2] || "";
-          parents.push({ id: undefined, year, part, question_text: q, isDirect: true, sub_questions: [{ part: "a", text: q, answerType: "image", answerImage: url }] });
+          const parent = { id: undefined, year, part, question_text: q, isDirect: true, sub_questions: [{ part: "a", text: q, answerType: "image", answerImage: url }] };
+          if (paper) parent.paper = paper;
+          parents.push(parent);
           i += 4;
           continue;
         }
@@ -508,12 +578,16 @@ export const uploadStructuredExcel = async (req, res) => {
     }
     if (overrideYear && partNormalized) {
       const p = normalizePart(partNormalized) || partNormalized;
+      const rp = normalizePaper(paperNormalized) || paperNormalized;
       logger.info("Structured question upload replacing existing questions", {
         year: overrideYear,
         part: p,
+        paper: rp,
         adminId: req.user?._id
       });
-      await StructuredQuestion.deleteMany({ year: overrideYear, part: p });
+      const deleteFilter = { year: overrideYear, part: p };
+      if (rp) deleteFilter.paper = rp;
+      await StructuredQuestion.deleteMany(deleteFilter);
     }
     const inserted = await StructuredQuestion.insertMany(docs);
     logger.info("Structured question upload completed", {
@@ -537,12 +611,16 @@ export const uploadStructuredExcel = async (req, res) => {
 
 export const adminListStructuredQuestions = async (req, res) => {
   try {
-    const { year, part } = req.query;
+    const { year, part, paper } = req.query;
     const filter = {};
     if (year) filter.year = Number(year);
     if (part) {
       const p = normalizePart(part) || part;
       filter.part = p;
+    }
+    const paperPredicate = buildPaperPredicate(paper);
+    if (paperPredicate) {
+      filter.$and = (filter.$and || []).concat([paperPredicate]);
     }
     const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
@@ -566,7 +644,7 @@ export const adminListStructuredQuestions = async (req, res) => {
 
 export const searchStructuredQuestions = async (req, res) => {
   try {
-    const { year, part, search } = req.query;
+    const { year, part, paper, search } = req.query;
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
     }
@@ -582,6 +660,10 @@ export const searchStructuredQuestions = async (req, res) => {
     if (part) {
       const p = normalizePart(part) || part;
       filter.part = p;
+    }
+    const paperPredicate = buildPaperPredicate(paper);
+    if (paperPredicate) {
+      filter.$and = (filter.$and || []).concat([paperPredicate]);
     }
 
     const safe = escapeRegex(search.trim());
@@ -645,6 +727,13 @@ export const updateStructuredQuestion = async (req, res) => {
   try {
     const { id } = req.params;
     const payload = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(payload, "paper")) {
+      const nextPaper = normalizePaper(payload.paper);
+      if (!nextPaper && String(payload.paper || "").trim()) {
+        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
+      }
+      payload.paper = nextPaper || payload.paper;
+    }
     if (Object.prototype.hasOwnProperty.call(payload, "QOTD")) {
       const parsedQotd = parseBoolean(payload.QOTD);
       if (parsedQotd === undefined) {
@@ -695,6 +784,69 @@ export const deleteStructuredQuestion = async (req, res) => {
 
 export const deleteStructuredQuestionsByYearPart = async (req, res) => {
   try {
+    const { year, part, paper } = req.query;
+    if (year === undefined || year === null || year === "") {
+      return errorResponse(res, 400, "year required");
+    }
+    const parsedYear = Number(year);
+    if (!Number.isFinite(parsedYear)) {
+      return errorResponse(res, 400, "year must be a number");
+    }
+    if (!part || !String(part).trim()) {
+      return errorResponse(res, 400, "part required");
+    }
+    const parsedPart = normalizePart(part);
+    if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
+      return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
+    }
+    let parsedPaper = undefined;
+    if (paper !== undefined && paper !== null && String(paper).trim()) {
+      parsedPaper = normalizePaper(paper);
+      if (!parsedPaper) {
+        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
+      }
+    }
+
+    const deleteFilter = { year: parsedYear, part: parsedPart };
+    if (parsedPaper) deleteFilter.paper = parsedPaper;
+    const result = await StructuredQuestion.deleteMany(deleteFilter);
+    const deletedCount = result?.deletedCount || 0;
+    return successResponse(res, 200, "Questions deleted", { deletedCount });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const listStructuredYears = async (req, res) => {
+  try {
+    const years = await StructuredQuestion.distinct("year");
+    const sorted = years.filter(y => Number.isFinite(Number(y))).map(Number).sort((a, b) => b - a);
+    return successResponse(res, 200, "Years fetched", sorted);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const listStructuredParts = async (req, res) => {
+  try {
+    const { year } = req.query;
+    if (year === undefined || year === null || year === "") {
+      return errorResponse(res, 400, "year required");
+    }
+    const parsedYear = Number(year);
+    if (!Number.isFinite(parsedYear)) {
+      return errorResponse(res, 400, "year must be a number");
+    }
+    const parts = await StructuredQuestion.distinct("part", { year: parsedYear });
+    const filtered = parts.filter(Boolean);
+    return successResponse(res, 200, "Parts fetched", filtered);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const listStructuredPapers = async (req, res) => {
+  try {
     const { year, part } = req.query;
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
@@ -710,10 +862,15 @@ export const deleteStructuredQuestionsByYearPart = async (req, res) => {
     if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
       return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
     }
-
-    const result = await StructuredQuestion.deleteMany({ year: parsedYear, part: parsedPart });
-    const deletedCount = result?.deletedCount || 0;
-    return successResponse(res, 200, "Questions deleted", { deletedCount });
+    const papers = await StructuredQuestion.distinct("paper", { year: parsedYear, part: parsedPart });
+    const filtered = papers.filter(p => String(p || "").trim());
+    if (!filtered.length) {
+      const count = await StructuredQuestion.countDocuments({ year: parsedYear, part: parsedPart });
+      if (count > 0) {
+        return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS);
+      }
+    }
+    return successResponse(res, 200, "Papers fetched", filtered);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
