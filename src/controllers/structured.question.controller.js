@@ -819,7 +819,15 @@ export const deleteStructuredQuestionsByYearPart = async (req, res) => {
 
 export const listStructuredYears = async (req, res) => {
   try {
-    if (!req.user) {
+    const role = String(req.user?.role || "").toLowerCase();
+    const adminEmail = String(process.env.ADMIN_EMAIL || "admin@fmf.local").toLowerCase();
+    const adminUserId = String(process.env.ADMIN_USER_ID || "").trim();
+    const isAdmin =
+      !req.user ||
+      role === "admin" ||
+      String(req.user?.email || "").toLowerCase() === adminEmail ||
+      (adminUserId && String(req.user?._id) === adminUserId);
+    if (isAdmin) {
       const fallback = [];
       for (let y = 2027; y >= 2020; y--) fallback.push(y);
       return successResponse(res, 200, "Years fetched", fallback);
@@ -860,7 +868,15 @@ export const listAdminPapers = async (req, res) => {
 
 export const listStructuredParts = async (req, res) => {
   try {
-    if (!req.user) {
+    const role = String(req.user?.role || "").toLowerCase();
+    const adminEmail = String(process.env.ADMIN_EMAIL || "admin@fmf.local").toLowerCase();
+    const adminUserId = String(process.env.ADMIN_USER_ID || "").trim();
+    const isAdmin =
+      !req.user ||
+      role === "admin" ||
+      String(req.user?.email || "").toLowerCase() === adminEmail ||
+      (adminUserId && String(req.user?._id) === adminUserId);
+    if (isAdmin) {
       return successResponse(res, 200, "Parts fetched", ["Part 1", "Part 2"]);
     }
     const { year } = req.query;
@@ -881,7 +897,15 @@ export const listStructuredParts = async (req, res) => {
 
 export const listStructuredPapers = async (req, res) => {
   try {
-    if (!req.user) {
+    const role = String(req.user?.role || "").toLowerCase();
+    const adminEmail = String(process.env.ADMIN_EMAIL || "admin@fmf.local").toLowerCase();
+    const adminUserId = String(process.env.ADMIN_USER_ID || "").trim();
+    const isAdmin =
+      !req.user ||
+      role === "admin" ||
+      String(req.user?.email || "").toLowerCase() === adminEmail ||
+      (adminUserId && String(req.user?._id) === adminUserId);
+    if (isAdmin) {
       return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS);
     }
     const { year, part } = req.query;
