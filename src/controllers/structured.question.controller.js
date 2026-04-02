@@ -821,7 +821,12 @@ export const listStructuredYears = async (req, res) => {
   try {
     const years = await StructuredQuestion.distinct("year");
     const sorted = years.filter(y => Number.isFinite(Number(y))).map(Number).sort((a, b) => b - a);
-    return successResponse(res, 200, "Years fetched", sorted);
+    if (sorted.length > 0) {
+      return successResponse(res, 200, "Years fetched", sorted);
+    }
+    const fallback = [];
+    for (let y = 2027; y >= 2020; y--) fallback.push(y);
+    return successResponse(res, 200, "Years fetched", fallback);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
