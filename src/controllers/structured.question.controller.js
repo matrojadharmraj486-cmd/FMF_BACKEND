@@ -819,11 +819,21 @@ export const deleteStructuredQuestionsByYearPart = async (req, res) => {
 
 export const listStructuredYears = async (req, res) => {
   try {
+    if (!req.user) {
+      const fallback = [];
+      for (let y = 2027; y >= 2020; y--) fallback.push(y);
+      return successResponse(res, 200, "Years fetched", fallback);
+    }
     const years = await StructuredQuestion.distinct("year");
     const sorted = years.filter(y => Number.isFinite(Number(y))).map(Number).sort((a, b) => b - a);
-    if (sorted.length > 0) {
-      return successResponse(res, 200, "Years fetched", sorted);
-    }
+    return successResponse(res, 200, "Years fetched", sorted);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const listAdminYears = async (req, res) => {
+  try {
     const fallback = [];
     for (let y = 2027; y >= 2020; y--) fallback.push(y);
     return successResponse(res, 200, "Years fetched", fallback);
@@ -832,8 +842,27 @@ export const listStructuredYears = async (req, res) => {
   }
 };
 
+export const listAdminParts = async (req, res) => {
+  try {
+    return successResponse(res, 200, "Parts fetched", ["Part 1", "Part 2"]);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const listAdminPapers = async (req, res) => {
+  try {
+    return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const listStructuredParts = async (req, res) => {
   try {
+    if (!req.user) {
+      return successResponse(res, 200, "Parts fetched", ["Part 1", "Part 2"]);
+    }
     const { year } = req.query;
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");
@@ -852,6 +881,9 @@ export const listStructuredParts = async (req, res) => {
 
 export const listStructuredPapers = async (req, res) => {
   try {
+    if (!req.user) {
+      return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS);
+    }
     const { year, part } = req.query;
     if (year === undefined || year === null || year === "") {
       return errorResponse(res, 400, "year required");

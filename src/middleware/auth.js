@@ -40,4 +40,17 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+export const optionalAuthenticate = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return next();
+    const decoded = verifyToken(token);
+    const user = await User.findById(decoded.userId);
+    if (user) req.user = user;
+    return next();
+  } catch (e) {
+    return next();
+  }
+};
+
 

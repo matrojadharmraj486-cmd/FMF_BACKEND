@@ -1,12 +1,12 @@
 ﻿{
   "info": {
-    "_postman_id": "c0c9f4f6-3a68-4f1f-90c2-70f1f2f3f3a1",
-    "name": "Structured Questions (Year/Part/Paper)",
+    "_postman_id": "f3028b8e-0d7f-4fe1-9b64-2f6f9f2c3e91",
+    "name": "Structured Questions (Full Flow)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "List Years",
+      "name": "Admin: List Years (no auth)",
       "request": {
         "method": "GET",
         "header": [],
@@ -18,10 +18,50 @@
       }
     },
     {
-      "name": "List Parts (by Year)",
+      "name": "Admin: List Parts (no auth)",
       "request": {
         "method": "GET",
         "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/parts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "parts"]
+        }
+      }
+    },
+    {
+      "name": "Admin: List Papers (no auth)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/papers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "papers"]
+        }
+      }
+    },
+    {
+      "name": "App: List Years (auth)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/years",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions", "years"]
+        }
+      }
+    },
+    {
+      "name": "App: List Parts (auth)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/questions/parts?year=2026",
           "host": ["{{baseUrl}}"],
@@ -33,10 +73,12 @@
       }
     },
     {
-      "name": "List Papers (by Year + Part)",
+      "name": "App: List Papers (auth)",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/questions/papers?year=2026&part=Part%201",
           "host": ["{{baseUrl}}"],
@@ -49,10 +91,12 @@
       }
     },
     {
-      "name": "Get Questions (Year/Part/Paper)",
+      "name": "App: Get Questions (auth + paper)",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
         "url": {
           "raw": "{{baseUrl}}/api/questions?year=2026&part=Part%201&paper=Paper%201",
           "host": ["{{baseUrl}}"],
@@ -66,7 +110,7 @@
       }
     },
     {
-      "name": "Search Questions (Year/Part/Paper)",
+      "name": "App: Search Questions (auth + paper)",
       "request": {
         "method": "GET",
         "header": [
@@ -86,7 +130,7 @@
       }
     },
     {
-      "name": "Admin Upload Structured Excel (Year/Part/Paper)",
+      "name": "Admin: Upload Structured Excel",
       "request": {
         "method": "POST",
         "header": [
