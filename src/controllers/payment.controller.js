@@ -4,6 +4,7 @@ import Subscription from "../models/Subscription.js";
 import User from "../models/User.js";
 import { razorpay, keyId, keySecret } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { logger } from "../utils/logger.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
 const formatPrice = (value) => {
@@ -84,7 +85,13 @@ export const createOrder = async (req, res) => {
       paymentId: payment._id
     });
   } catch (e) {
-    return errorResponse(res, 500, e.message);
+    logger.error("Create order failed", {
+      error: e?.message,
+      stack: e?.stack,
+      userId: req.user?._id,
+      subscriptionId: req.body?.subscriptionId
+    });
+    return errorResponse(res, 500, e.message || "Create order failed");
   }
 };
 
@@ -137,7 +144,13 @@ export const verifyPayment = async (req, res) => {
       status: payment.status
     });
   } catch (e) {
-    return errorResponse(res, 500, e.message);
+    logger.error("Verify payment failed", {
+      error: e?.message,
+      stack: e?.stack,
+      userId: req.user?._id,
+      orderId: req.body?.razorpay_order_id
+    });
+    return errorResponse(res, 500, e.message || "Verify payment failed");
   }
 };
 
@@ -163,7 +176,13 @@ export const markPaymentFailed = async (req, res) => {
       status: payment.status
     });
   } catch (e) {
-    return errorResponse(res, 500, e.message);
+    logger.error("Mark payment failed", {
+      error: e?.message,
+      stack: e?.stack,
+      userId: req.user?._id,
+      orderId: req.body?.razorpay_order_id
+    });
+    return errorResponse(res, 500, e.message || "Mark payment failed");
   }
 };
 
@@ -213,6 +232,10 @@ export const handleWebhook = async (req, res) => {
 
     return successResponse(res, 200, "Webhook processed");
   } catch (e) {
-    return errorResponse(res, 500, e.message);
+    logger.error("Webhook handling failed", {
+      error: e?.message,
+      stack: e?.stack
+    });
+    return errorResponse(res, 500, e.message || "Webhook failed");
   }
 };
