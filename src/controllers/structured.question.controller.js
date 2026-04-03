@@ -29,16 +29,16 @@ const normalizePaper = (raw) => {
 };
 
 const toRomanPart = (value) => {
-  if (value === "Part 1") return "Part I";
-  if (value === "Part 2") return "Part II";
+  if (value === "Part 1") return "I";
+  if (value === "Part 2") return "II";
   return value;
 };
 
 const toRomanPaper = (value) => {
-  if (value === "Paper 1") return "Paper I";
-  if (value === "Paper 2") return "Paper II";
-  if (value === "Paper 3") return "Paper III";
-  if (value === "Paper 4") return "Paper IV";
+  if (value === "Paper 1") return "I";
+  if (value === "Paper 2") return "II";
+  if (value === "Paper 3") return "III";
+  if (value === "Paper 4") return "IV";
   return value;
 };
 
