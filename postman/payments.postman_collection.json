@@ -1,0 +1,94 @@
+﻿{
+  "info": {
+    "_postman_id": "3f6c3d5d-6fd2-4b72-8fb5-2f0c1c7a9d55",
+    "name": "Payments (Razorpay)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"subscriptionId\": \"{{subscriptionId}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "orders"]
+        }
+      }
+    },
+    {
+      "name": "Verify Payment (Success)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"razorpay_order_id\": \"{{razorpay_order_id}}\",\n  \"razorpay_payment_id\": \"{{razorpay_payment_id}}\",\n  \"razorpay_signature\": \"{{razorpay_signature}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/verify",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "verify"]
+        }
+      }
+    },
+    {
+      "name": "Mark Payment Failed",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"razorpay_order_id\": \"{{razorpay_order_id}}\",\n  \"reason\": \"payment_failed\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/fail",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "fail"]
+        }
+      }
+    },
+    {
+      "name": "Razorpay Webhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-razorpay-signature", "value": "{{webhookSignature}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"event\": \"payment.captured\",\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"order_id\": \"{{razorpay_order_id}}\",\n        \"id\": \"{{razorpay_payment_id}}\"\n      }\n    }\n  }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/webhook",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "webhook"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "subscriptionId", "value": "" },
+    { "key": "razorpay_order_id", "value": "" },
+    { "key": "razorpay_payment_id", "value": "" },
+    { "key": "razorpay_signature", "value": "" },
+    { "key": "webhookSignature", "value": "" }
+  ]
+}

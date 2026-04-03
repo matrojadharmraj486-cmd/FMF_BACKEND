@@ -141,6 +141,32 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
+export const markPaymentFailed = async (req, res) => {
+  try {
+    const { razorpay_order_id, reason, error } = req.body || {};
+    if (!razorpay_order_id) {
+      return errorResponse(res, 400, "razorpay_order_id required");
+    }
+
+    const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
+    if (!payment) return errorResponse(res, 404, "Payment not found");
+    if (payment.user?.toString() !== req.user?._id?.toString()) {
+      return errorResponse(res, 403, "Payment does not belong to this user");
+    }
+
+    payment.status = "failed";
+    payment.error = error || (reason ? { reason } : payment.error);
+    await payment.save();
+
+    return successResponse(res, 200, "Payment marked failed", {
+      paymentId: payment._id,
+      status: payment.status
+    });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const handleWebhook = async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
