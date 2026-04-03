@@ -6,6 +6,10 @@ import { razorpay, keyId, keySecret } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
+const formatPrice = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(2) : value;
+};
 
 const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) => {
   const now = new Date();
@@ -73,7 +77,10 @@ export const createOrder = async (req, res) => {
       amount: order.amount,
       currency: order.currency,
       keyId,
-      subscription,
+      subscription: {
+        ...(subscription.toObject ? subscription.toObject() : subscription),
+        price: formatPrice(subscription.price)
+      },
       paymentId: payment._id
     });
   } catch (e) {
