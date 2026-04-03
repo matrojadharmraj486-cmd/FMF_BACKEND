@@ -12,6 +12,19 @@ const formatPrice = (value) => {
   return Number.isFinite(n) ? n.toFixed(2) : value;
 };
 
+const serializeError = (e) => {
+  if (!e) return {};
+  return {
+    name: e.name,
+    message: e.message,
+    stack: e.stack,
+    code: e.code,
+    statusCode: e.statusCode,
+    error: e.error,
+    description: e.error?.description || e.description
+  };
+};
+
 const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) => {
   const now = new Date();
   const endDate = new Date(now);
@@ -86,12 +99,12 @@ export const createOrder = async (req, res) => {
     });
   } catch (e) {
     logger.error("Create order failed", {
-      error: e?.message,
-      stack: e?.stack,
+      error: serializeError(e),
       userId: req.user?._id,
       subscriptionId: req.body?.subscriptionId
     });
-    return errorResponse(res, 500, e.message || "Create order failed");
+    const msg = e?.error?.description || e?.message || "Create order failed";
+    return errorResponse(res, 500, msg);
   }
 };
 
@@ -145,12 +158,12 @@ export const verifyPayment = async (req, res) => {
     });
   } catch (e) {
     logger.error("Verify payment failed", {
-      error: e?.message,
-      stack: e?.stack,
+      error: serializeError(e),
       userId: req.user?._id,
       orderId: req.body?.razorpay_order_id
     });
-    return errorResponse(res, 500, e.message || "Verify payment failed");
+    const msg = e?.error?.description || e?.message || "Verify payment failed";
+    return errorResponse(res, 500, msg);
   }
 };
 
@@ -177,12 +190,12 @@ export const markPaymentFailed = async (req, res) => {
     });
   } catch (e) {
     logger.error("Mark payment failed", {
-      error: e?.message,
-      stack: e?.stack,
+      error: serializeError(e),
       userId: req.user?._id,
       orderId: req.body?.razorpay_order_id
     });
-    return errorResponse(res, 500, e.message || "Mark payment failed");
+    const msg = e?.error?.description || e?.message || "Mark payment failed";
+    return errorResponse(res, 500, msg);
   }
 };
 
@@ -233,9 +246,9 @@ export const handleWebhook = async (req, res) => {
     return successResponse(res, 200, "Webhook processed");
   } catch (e) {
     logger.error("Webhook handling failed", {
-      error: e?.message,
-      stack: e?.stack
+      error: serializeError(e)
     });
-    return errorResponse(res, 500, e.message || "Webhook failed");
+    const msg = e?.error?.description || e?.message || "Webhook failed";
+    return errorResponse(res, 500, msg);
   }
 };
