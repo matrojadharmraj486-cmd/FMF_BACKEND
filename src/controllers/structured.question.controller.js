@@ -11,8 +11,8 @@ const toAbsolute = (url, req) => {
 
 const normalizePart = (raw) => {
   const s = String(raw || "").toLowerCase().replace(/\s+/g, "").replace(/-/g, "");
-  if (["part1", "1", "p1"].includes(s)) return "Part 1";
-  if (["part2", "2", "p2"].includes(s)) return "Part 2";
+  if (["part1", "1", "p1", "i", "parti"].includes(s)) return "Part 1";
+  if (["part2", "2", "p2", "ii", "partii"].includes(s)) return "Part 2";
   return null;
 };
 
@@ -26,6 +26,20 @@ const normalizePaper = (raw) => {
   if (["paper3", "p3", "3", "iii", "paperiii"].includes(s)) return "Paper 3";
   if (["paper4", "p4", "4", "iv", "paperiv"].includes(s)) return "Paper 4";
   return null;
+};
+
+const toRomanPart = (value) => {
+  if (value === "Part 1") return "Part I";
+  if (value === "Part 2") return "Part II";
+  return value;
+};
+
+const toRomanPaper = (value) => {
+  if (value === "Paper 1") return "Paper I";
+  if (value === "Paper 2") return "Paper II";
+  if (value === "Paper 3") return "Paper III";
+  if (value === "Paper 4") return "Paper IV";
+  return value;
 };
 
 const buildPaperPredicate = (paper) => {
@@ -888,8 +902,12 @@ export const listStructuredParts = async (req, res) => {
       return errorResponse(res, 400, "year must be a number");
     }
     const parts = await StructuredQuestion.distinct("part", { year: parsedYear });
-    const filtered = parts.filter(Boolean);
-    return successResponse(res, 200, "Parts fetched", filtered);
+    const mapped = parts
+      .filter(Boolean)
+      .map(p => normalizePart(p) || p)
+      .map(toRomanPart);
+    const unique = Array.from(new Set(mapped));
+    return successResponse(res, 200, "Parts fetched", unique);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
@@ -924,14 +942,18 @@ export const listStructuredPapers = async (req, res) => {
       return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
     }
     const papers = await StructuredQuestion.distinct("paper", { year: parsedYear, part: parsedPart });
-    const filtered = papers.filter(p => String(p || "").trim());
+    const filtered = papers
+      .filter(p => String(p || "").trim())
+      .map(p => normalizePaper(p) || p)
+      .map(toRomanPaper);
+    const unique = Array.from(new Set(filtered));
     if (!filtered.length) {
       const count = await StructuredQuestion.countDocuments({ year: parsedYear, part: parsedPart });
       if (count > 0) {
-        return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS);
+        return successResponse(res, 200, "Papers fetched", DEFAULT_PAPERS.map(toRomanPaper));
       }
     }
-    return successResponse(res, 200, "Papers fetched", filtered);
+    return successResponse(res, 200, "Papers fetched", unique);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
