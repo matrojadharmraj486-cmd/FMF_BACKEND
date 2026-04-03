@@ -64,7 +64,8 @@ export const createOrder = async (req, res) => {
     const amount = toPaise(subscription.price);
     if (!amount || amount <= 0) return errorResponse(res, 400, "Invalid subscription amount");
 
-    const receipt = `sub_${subscription._id}_${Date.now()}`;
+    const shortSubId = String(subscription._id || "").replace(/[^a-zA-Z0-9]/g, "").slice(-10);
+    const receipt = `sub_${shortSubId}_${Date.now()}`.slice(0, 40);
     const order = await razorpay.orders.create({
       amount,
       currency: subscription.currency || "INR",
