@@ -50,7 +50,8 @@ app.use(
 );
 const allowedOrigins = [
   "https://fmf-admin-panel-1.onrender.com",
-  "https://thecityheadlines.com"
+  "https://thecityheadlines.com",
+  "https://fmf-admin-panel.familymedicineflashback.com"
 ];
 
 app.use(
