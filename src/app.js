@@ -51,7 +51,8 @@ app.use(
 const allowedOrigins = [
   "https://fmf-admin-panel-1.onrender.com",
   "https://thecityheadlines.com",
-  "https://fmf-admin-panel.familymedicineflashback.com"
+  "https://fmf-admin-panel.familymedicineflashback.com",
+  "https://admin.familymedicineflashback.com"
 ];
 
 app.use(
