@@ -25,6 +25,7 @@ import subscriptionRoutes from "./routes/subscription.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import supportTicketRoutes from "./routes/support.ticket.routes.js";
 import adminSupportTicketRoutes from "./routes/admin.support.ticket.routes.js";
+import adminPaymentGatewayRoutes from "./routes/admin.paymentGateway.routes.js";
 
 
 const app = express();
@@ -90,6 +91,7 @@ app.use("/api/admin", adminStructuredRoutes);
 app.use("/api/admin", adminTestimonialRoutes);
 app.use("/api/admin", adminSubscriptionRoutes);
 app.use("/api/admin", adminSupportTicketRoutes);
+app.use("/api/admin", adminPaymentGatewayRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
 

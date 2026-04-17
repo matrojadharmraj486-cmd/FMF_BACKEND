@@ -6,6 +6,7 @@ const subscriptionSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     features: [{ type: String, trim: true }],
     price: { type: Number, required: true }, // INR
+    gstPercent: { type: Number, default: 0 }, // 0, 5, 18
     currency: { type: String, default: "INR" },
     durationDays: { type: Number, required: true },
     isActive: { type: Boolean, default: true },

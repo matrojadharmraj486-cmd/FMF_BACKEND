@@ -2,7 +2,7 @@ import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Subscription from "../models/Subscription.js";
 import User from "../models/User.js";
-import { razorpay, keyId, keySecret } from "../utils/razorpay.js";
+import { getRazorpayClient } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 
@@ -10,6 +10,16 @@ const toPaise = (amountInr) => Math.round(amountInr * 100);
 const formatPrice = (value) => {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(2) : value;
+};
+
+const calcSubscriptionTotals = (subscription) => {
+  const base = Number(subscription?.price);
+  const gstPercent = Number(subscription?.gstPercent);
+  const gst = Number.isFinite(gstPercent) ? gstPercent : 0;
+  if (!Number.isFinite(base)) return null;
+  const gstAmount = Math.round((base * gst / 100) * 100) / 100;
+  const total = Math.round((base + gstAmount) * 100) / 100;
+  return { base, gstPercent: gst, gstAmount, total };
 };
 
 const serializeError = (e) => {
@@ -44,6 +54,7 @@ const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) 
 
 export const createOrder = async (req, res) => {
   try {
+    const { razorpay, keyId, keySecret } = await getRazorpayClient();
     if (!razorpay || !keyId || !keySecret) {
       return errorResponse(res, 503, "Razorpay is not configured");
     }
@@ -61,7 +72,9 @@ export const createOrder = async (req, res) => {
     if (!subscription || !subscription.isActive)
       return errorResponse(res, 404, "Subscription not available");
 
-    const amount = toPaise(subscription.price);
+    const totals = calcSubscriptionTotals(subscription);
+    const totalInr = totals?.total ?? Number(subscription.price);
+    const amount = toPaise(totalInr);
     if (!amount || amount <= 0) return errorResponse(res, 400, "Invalid subscription amount");
 
     const shortSubId = String(subscription._id || "").replace(/[^a-zA-Z0-9]/g, "").slice(-10);
@@ -94,7 +107,14 @@ export const createOrder = async (req, res) => {
       keyId,
       subscription: {
         ...(subscription.toObject ? subscription.toObject() : subscription),
-        price: formatPrice(subscription.price)
+        price: formatPrice(subscription.price),
+        gstPercent: totals
+          ? totals.gstPercent
+          : Number.isFinite(Number(subscription.gstPercent))
+            ? Number(subscription.gstPercent)
+            : 0,
+        gstAmount: formatPrice(totals?.gstAmount ?? 0),
+        totalPrice: formatPrice(totals?.total ?? subscription.price)
       },
       paymentId: payment._id
     });
@@ -111,6 +131,7 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
+    const { keySecret } = await getRazorpayClient();
     if (!keySecret) {
       return errorResponse(res, 503, "Razorpay is not configured");
     }
