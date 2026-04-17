@@ -19,7 +19,9 @@ export const getPaymentGatewayConfig = async (req, res) => {
         isActive: false,
         isConfigured: false,
         keyId: "",
-        saltIdMasked: ""
+        key: "",
+        saltIdMasked: "",
+        secretMasked: ""
       });
     }
 
@@ -28,7 +30,9 @@ export const getPaymentGatewayConfig = async (req, res) => {
       isActive: !!doc.isActive,
       isConfigured: !!doc.keyId && !!doc.saltId && !!doc.isActive,
       keyId: doc.keyId || "",
-      saltIdMasked: maskSecret(doc.saltId)
+      key: doc.keyId || "",
+      saltIdMasked: maskSecret(doc.saltId),
+      secretMasked: maskSecret(doc.saltId)
     });
   } catch (e) {
     return errorResponse(res, 500, e.message);
@@ -37,7 +41,7 @@ export const getPaymentGatewayConfig = async (req, res) => {
 
 export const upsertPaymentGatewayConfig = async (req, res) => {
   try {
-    const { gateway, keyId, saltId, isActive } = req.body || {};
+    const { gateway, keyId, saltId, key, secret, isActive } = req.body || {};
     const gw = (gateway || DEFAULT_GATEWAY).toString().toLowerCase();
     if (gw !== DEFAULT_GATEWAY) {
       return errorResponse(res, 400, "Only razorpay is supported for now");
@@ -46,16 +50,18 @@ export const upsertPaymentGatewayConfig = async (req, res) => {
     const existing = await PaymentGatewayConfig.findOne({ gateway: DEFAULT_GATEWAY });
 
     const update = {};
-    if (keyId !== undefined) {
-      const v = String(keyId || "").trim();
+    const effectiveKeyId = keyId !== undefined ? keyId : key;
+    if (effectiveKeyId !== undefined) {
+      const v = String(effectiveKeyId || "").trim();
       if (!v) return errorResponse(res, 400, "keyId is required");
       update.keyId = v;
     } else if (!existing) {
       return errorResponse(res, 400, "keyId is required");
     }
 
-    if (saltId !== undefined) {
-      const v = String(saltId || "").trim();
+    const effectiveSaltId = saltId !== undefined ? saltId : secret;
+    if (effectiveSaltId !== undefined) {
+      const v = String(effectiveSaltId || "").trim();
       if (!v) return errorResponse(res, 400, "saltId is required");
       update.saltId = v;
     } else if (!existing) {
@@ -79,10 +85,11 @@ export const upsertPaymentGatewayConfig = async (req, res) => {
       isActive: !!doc.isActive,
       isConfigured: !!doc.keyId && !!doc.saltId && !!doc.isActive,
       keyId: doc.keyId || "",
-      saltIdMasked: maskSecret(doc.saltId)
+      key: doc.keyId || "",
+      saltIdMasked: maskSecret(doc.saltId),
+      secretMasked: maskSecret(doc.saltId)
     });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
 };
-

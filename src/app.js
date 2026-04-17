@@ -26,6 +26,7 @@ import paymentRoutes from "./routes/payment.routes.js";
 import supportTicketRoutes from "./routes/support.ticket.routes.js";
 import adminSupportTicketRoutes from "./routes/admin.support.ticket.routes.js";
 import adminPaymentGatewayRoutes from "./routes/admin.paymentGateway.routes.js";
+import adminStatsRoutes from "./routes/admin.stats.routes.js";
 
 
 const app = express();
@@ -53,7 +54,11 @@ const allowedOrigins = [
   "https://fmf-admin-panel-1.onrender.com",
   "https://thecityheadlines.com",
   "https://fmf-admin-panel.familymedicineflashback.com",
-  "https://admin.familymedicineflashback.com"
+  "https://admin.familymedicineflashback.com",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173"
 ];
 
 app.use(
@@ -92,6 +97,8 @@ app.use("/api/admin", adminTestimonialRoutes);
 app.use("/api/admin", adminSubscriptionRoutes);
 app.use("/api/admin", adminSupportTicketRoutes);
 app.use("/api/admin", adminPaymentGatewayRoutes);
+app.use("/api/admin", adminStatsRoutes);
+app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
 
