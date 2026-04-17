@@ -42,7 +42,7 @@ const withPriceFormat = (doc) => {
 
 export const createSubscription = async (req, res) => {
   try {
-    const { name, description, features, price, gstPercent, durationDays, currency, isActive } = req.body || {};
+    const { name, description, price, gstPercent, durationDays, currency, isActive } = req.body || {};
 
     const parsedPrice = parsePrice(price);
     if (!name || parsedPrice === null || parsedPrice <= 0 || !durationDays || durationDays <= 0) {
@@ -57,7 +57,7 @@ export const createSubscription = async (req, res) => {
     const subscription = await Subscription.create({
       name,
       description,
-      features: Array.isArray(features) ? features : [],
+      features: [],
       price: parsedPrice,
       gstPercent: parsedGst,
       currency: currency || "INR",
@@ -87,12 +87,11 @@ export const listSubscriptions = async (req, res) => {
 export const updateSubscription = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, features, price, gstPercent, durationDays, currency, isActive } = req.body || {};
+    const { name, description, price, gstPercent, durationDays, currency, isActive } = req.body || {};
 
     const update = {};
     if (name) update.name = name;
     if (description !== undefined) update.description = description;
-    if (Array.isArray(features)) update.features = features;
     if (price !== undefined) {
       const parsedPrice = parsePrice(price);
       if (parsedPrice === null || parsedPrice <= 0) {

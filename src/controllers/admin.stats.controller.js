@@ -34,8 +34,15 @@ const toDayString = (date) => {
   return d.toISOString().slice(0, 10);
 };
 
+const toMonthString = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toISOString().slice(0, 7);
+};
+
 const utcStartOfDay = (d) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+
+const utcStartOfMonth = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0));
 
 const aggregateDailyCounts = async (model, match = {}) => {
   const rows = await model.aggregate([
@@ -46,6 +53,43 @@ const aggregateDailyCounts = async (model, match = {}) => {
         count: { $sum: 1 }
       }
     }
+  ]);
+  const map = new Map();
+  for (const r of rows) map.set(r._id, Number(r.count) || 0);
+  return map;
+};
+
+const aggregateMonthlyCounts = async (model, match = {}) => {
+  const rows = await model.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "UTC" }
+        },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  const map = new Map();
+  for (const r of rows) map.set(r._id, Number(r.count) || 0);
+  return map;
+};
+
+const aggregateMonthlyPaperCounts = async (match = {}) => {
+  const rows = await StructuredQuestion.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: {
+          month: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "UTC" } },
+          year: "$year",
+          part: "$part",
+          paper: "$paper"
+        }
+      }
+    },
+    { $group: { _id: "$_id.month", count: { $sum: 1 } } }
   ]);
   const map = new Map();
   for (const r of rows) map.set(r._id, Number(r.count) || 0);
@@ -83,6 +127,54 @@ export const getAdminStats = async (req, res) => {
 };
 
 export const getAdminStatsTimeseries = async (req, res) => {
+  const granularity = (req.query.granularity || "").toString().toLowerCase();
+  if (granularity === "month") {
+    const rawMonths = req.query.months;
+    const months = Math.min(60, Math.max(1, Number(rawMonths || 12) || 12));
+
+    const cacheKey = `admin:stats:timeseries:month:${months}`;
+    const cached = getCache(cacheKey);
+    if (cached) return res.json(cached);
+
+    const ttlMs = Math.max(10000, parseCacheTtlMs());
+
+    const now = new Date();
+    const currentMonthStart = utcStartOfMonth(now);
+    const start = utcStartOfMonth(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1)));
+    const endExclusive = utcStartOfMonth(
+      new Date(Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() + 1, 1))
+    );
+
+    const baseMatch = { createdAt: { $gte: start, $lt: endExclusive } };
+
+    const [usersByMonth, structuredByMonth, legacyByMonth, papersByMonth, bookmarksByMonth] =
+      await Promise.all([
+        aggregateMonthlyCounts(User, { ...baseMatch, isDeleted: false, isActive: true }),
+        aggregateMonthlyCounts(StructuredQuestion, baseMatch),
+        aggregateMonthlyCounts(Question, baseMatch),
+        aggregateMonthlyPaperCounts({ ...baseMatch, paper: { $exists: true, $ne: null, $ne: "" } }),
+        aggregateMonthlyCounts(Bookmark, baseMatch)
+      ]);
+
+    const points = [];
+    for (let i = 0; i < months; i++) {
+      const monthStart = utcStartOfMonth(new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1)));
+      const month = toMonthString(monthStart);
+      const questions = (structuredByMonth.get(month) || 0) + (legacyByMonth.get(month) || 0);
+      points.push({
+        month,
+        users: usersByMonth.get(month) || 0,
+        questions,
+        papers: papersByMonth.get(month) || 0,
+        bookmarks: bookmarksByMonth.get(month) || 0
+      });
+    }
+
+    const response = { points };
+    setCache(cacheKey, response, ttlMs);
+    return res.json(response);
+  }
+
   const rawDays = req.query.days;
   const days = Math.min(365, Math.max(1, Number(rawDays || 30) || 30));
 
@@ -124,4 +216,3 @@ export const getAdminStatsTimeseries = async (req, res) => {
   setCache(cacheKey, response, ttlMs);
   return res.json(response);
 };
-
