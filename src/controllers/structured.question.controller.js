@@ -843,7 +843,7 @@ export const listStructuredYears = async (req, res) => {
       (adminUserId && String(req.user?._id) === adminUserId);
     if (isAdmin) {
       const fallback = [];
-      for (let y = 2027; y >= 2020; y--) fallback.push(y);
+      for (let y = 2041; y >= 2011; y--) fallback.push(y);
       return successResponse(res, 200, "Years fetched", fallback);
     }
     const years = await StructuredQuestion.distinct("year");
