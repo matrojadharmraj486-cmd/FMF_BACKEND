@@ -5,6 +5,7 @@ const paymentGatewayConfigSchema = new mongoose.Schema(
     gateway: { type: String, required: true, enum: ["razorpay"], unique: true },
     keyId: { type: String, required: true, trim: true },
     saltId: { type: String, required: true, trim: true },
+    description: { type: String, trim: true, default: "" },
     isActive: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
@@ -13,4 +14,3 @@ const paymentGatewayConfigSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("PaymentGatewayConfig", paymentGatewayConfigSchema);
-

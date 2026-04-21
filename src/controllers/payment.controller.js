@@ -54,8 +54,11 @@ const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) 
 
 export const createOrder = async (req, res) => {
   try {
-    const { razorpay, keyId, keySecret } = await getRazorpayClient();
+    const { razorpay, keyId, keySecret, isActive, source } = await getRazorpayClient();
     if (!razorpay || !keyId || !keySecret) {
+      if (source === "db" && isActive === false) {
+        return errorResponse(res, 503, "Razorpay is inactive");
+      }
       return errorResponse(res, 503, "Razorpay is not configured");
     }
     const { subscriptionId } = req.body || {};
@@ -131,7 +134,7 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
-    const { keySecret } = await getRazorpayClient();
+    const { keySecret } = await getRazorpayClient({ allowInactive: true });
     if (!keySecret) {
       return errorResponse(res, 503, "Razorpay is not configured");
     }
