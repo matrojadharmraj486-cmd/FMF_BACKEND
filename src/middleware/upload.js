@@ -1,21 +1,12 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { logger } from "../utils/logger.js";
 
 const uploadDir = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
-  : path.join(process.cwd(), "uploads");
-
-const mimeToExt = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/gif": ".gif",
-  "image/webp": ".webp",
-  "image/svg+xml": ".svg",
-  "image/heic": ".heic",
-  "image/heif": ".heif"
-};
+  : path.join(os.tmpdir(), "fmf-uploads");
 
 const storage = multer.diskStorage({
 
@@ -30,11 +21,7 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
-    let ext = path.extname(file.originalname);
-    if (!ext && file.mimetype && file.mimetype.startsWith("image/")) {
-      ext = mimeToExt[file.mimetype] || "";
-    }
-    const generatedName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const generatedName = Date.now() + path.extname(file.originalname);
     logger.info("Incoming file accepted for upload", {
       originalName: file.originalname,
       generatedName,
