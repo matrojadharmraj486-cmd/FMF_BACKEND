@@ -16,6 +16,26 @@ const sortPipeline = (match) => [
   { $project: { _orderSort: 0 } }
 ];
 
+const htmlToText = (html) => {
+  const input = String(html || "");
+  if (!input) return "";
+  return input
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/\s*p\s*>/gi, "\n")
+    .replace(/<\/\s*div\s*>/gi, "\n")
+    .replace(/<\/\s*li\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
 export const listFaqsAdmin = async (req, res) => {
   try {
     const docs = await Faq.aggregate(sortPipeline({}));
@@ -100,9 +120,12 @@ export const deleteFaq = async (req, res) => {
 export const listFaqsPublic = async (req, res) => {
   try {
     const docs = await Faq.aggregate(sortPipeline({ isActive: true }));
-    return res.status(200).json({ data: docs });
+    const data = docs.map((d) => ({
+      ...d,
+      answer: htmlToText(d.answer)
+    }));
+    return successResponse(res, 200, "Faqs fetched", data);
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
 };
-
