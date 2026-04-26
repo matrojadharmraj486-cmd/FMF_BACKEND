@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import path from "path";
-import os from "os";
+
 
 import authRoutes from "./routes/authRoutes.js";
 import stateRoutes from "./routes/state.route.js";
@@ -27,13 +27,16 @@ import supportTicketRoutes from "./routes/support.ticket.routes.js";
 import adminSupportTicketRoutes from "./routes/admin.support.ticket.routes.js";
 import adminPaymentGatewayRoutes from "./routes/admin.paymentGateway.routes.js";
 import adminStatsRoutes from "./routes/admin.stats.routes.js";
+import faqRoutes from "./routes/faq.routes.js";
+import adminFaqRoutes from "./routes/admin.faq.routes.js";
+import adminEditorRoutes from "./routes/admin.editor.routes.js";
 
 
 const app = express();
 const jsonBodyLimit = process.env.JSON_BODY_LIMIT || "10mb";
 const uploadsPath = process.env.UPLOAD_DIR
   ? path.resolve(process.env.UPLOAD_DIR)
-  : path.join(os.tmpdir(), "fmf-uploads");
+  : path.join(process.cwd(), "uploads");
 
 app.set("trust proxy", 1);
 app.use(
@@ -85,6 +88,7 @@ app.use("/api", homeRoutes);
 app.use("/api", opinionRoutes);
 app.use("/api", subscriptionRoutes);
 app.use("/api", supportTicketRoutes);
+app.use("/api", faqRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);
@@ -98,6 +102,8 @@ app.use("/api/admin", adminSubscriptionRoutes);
 app.use("/api/admin", adminSupportTicketRoutes);
 app.use("/api/admin", adminPaymentGatewayRoutes);
 app.use("/api/admin", adminStatsRoutes);
+app.use("/api/admin", adminFaqRoutes);
+app.use("/api/admin", adminEditorRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
