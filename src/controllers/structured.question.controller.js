@@ -489,9 +489,20 @@ export const uploadStructuredExcel = async (req, res) => {
         if (answerType === "text") {
           sub.answer = answerText ? answerText.split(";").map(s => s.trim()).filter(Boolean) : [];
         } else {
-          sub.answerImage = answerImage.startsWith("http") || answerImage.startsWith("/uploads/")
-            ? answerImage
-            : `/uploads/${answerImage}`;
+          let resolvedImage = answerImage;
+          if (!resolvedImage) resolvedImage = answerText || mainQuestionAnswer;
+          resolvedImage = String(resolvedImage || "").trim();
+          if (!resolvedImage) {
+            logger.warn("Structured question row validation failed", {
+              rowNumber,
+              reason: "answerImage required for image row",
+              row: r
+            });
+            return errorResponse(res, 400, "answerImage required for image rows");
+          }
+          sub.answerImage = resolvedImage.startsWith("http") || resolvedImage.startsWith("/uploads/")
+            ? resolvedImage
+            : `/uploads/${resolvedImage}`;
         }
         group.sub_questions.push(sub);
       }
