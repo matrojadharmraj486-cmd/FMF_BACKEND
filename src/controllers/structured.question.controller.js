@@ -349,7 +349,19 @@ export const uploadStructuredExcel = async (req, res) => {
     const headerKeys = rows.length ? Object.keys(rows[0]) : [];
     const normalizedHeaders = new Set(headerKeys.map(normalizeHeader));
     const aliases = {
-      groupId: ["groupId", "group_id", "group", "question_id", "questionid", "qid", "id"],
+      groupId: [
+        "groupId",
+        "group_id",
+        "group",
+        "question_id",
+        "questionid",
+        "qid",
+        "id",
+        "question_no",
+        "questionno",
+        "question_no_1",
+        "questionno1"
+      ],
       year: ["year", "exam_year", "session_year"],
       part: ["part", "paper_part", "module_part"],
       paper: ["paper", "paper_no", "paper_number", "papername"],
@@ -389,7 +401,7 @@ export const uploadStructuredExcel = async (req, res) => {
       for (let index = 0; index < rows.length; index++) {
         const r = rows[index];
         const rowNumber = index + 2;
-        const groupId = String(pickValue(r, aliases.groupId) || "").trim();
+        let groupId = String(pickValue(r, aliases.groupId) || "").trim();
         const year = (overrideYear ?? Number(pickValue(r, aliases.year))) || new Date().getFullYear();
         const rawPart = pickValue(r, aliases.part);
         const partCandidate = partNormalized ?? (normalizePart(rawPart) || String(rawPart || "").trim() || "Part 1");
@@ -450,6 +462,10 @@ export const uploadStructuredExcel = async (req, res) => {
           });
           return errorResponse(res, 400, "answerType must be 'text' or 'image'");
         }
+        if (groupId && /^\d+$/.test(groupId)) {
+          groupId = `${year}-${part}-${paper || ""}-Q${groupId}`;
+        }
+
         const key = groupId || `${year}-${part}-${paper || ""}-${question_text}`;
         if (!groups.has(key)) {
           groups.set(key, {
