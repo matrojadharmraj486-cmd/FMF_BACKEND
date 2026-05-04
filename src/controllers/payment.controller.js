@@ -127,8 +127,19 @@ export const createOrder = async (req, res) => {
       userId: req.user?._id,
       subscriptionId: req.body?.subscriptionId
     });
-    const msg = e?.error?.description || e?.message || "Create order failed";
-    return errorResponse(res, 500, msg);
+    const rawMsg = e?.error?.description || e?.message || "Create order failed";
+    const statusCode = Number(e?.statusCode);
+    const isGatewayAuthFailure =
+      statusCode === 401 ||
+      String(rawMsg || "").toLowerCase().includes("authentication failed");
+    if (isGatewayAuthFailure) {
+      return errorResponse(
+        res,
+        503,
+        "Payment gateway authentication failed. Please verify Razorpay keyId/keySecret in admin settings or server env."
+      );
+    }
+    return errorResponse(res, 500, rawMsg);
   }
 };
 

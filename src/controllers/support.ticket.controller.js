@@ -18,6 +18,9 @@ const mapTicket = (doc, req) => {
   if (obj.attachment?.url) {
     obj.attachment.url = toAbsolute(obj.attachment.url, req);
   }
+  if (obj.user && typeof obj.user === "object" && obj.user.mobileNumber) {
+    obj.mobileNumber = obj.user.mobileNumber;
+  }
   return obj;
 };
 

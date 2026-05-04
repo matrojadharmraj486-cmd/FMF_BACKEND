@@ -30,6 +30,7 @@ import adminStatsRoutes from "./routes/admin.stats.routes.js";
 import faqRoutes from "./routes/faq.routes.js";
 import adminFaqRoutes from "./routes/admin.faq.routes.js";
 import adminEditorRoutes from "./routes/admin.editor.routes.js";
+import adminOpinionRoutes from "./routes/admin.opinion.routes.js";
 
 
 const app = express();
@@ -104,6 +105,7 @@ app.use("/api/admin", adminPaymentGatewayRoutes);
 app.use("/api/admin", adminStatsRoutes);
 app.use("/api/admin", adminFaqRoutes);
 app.use("/api/admin", adminEditorRoutes);
+app.use("/api/admin", adminOpinionRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
