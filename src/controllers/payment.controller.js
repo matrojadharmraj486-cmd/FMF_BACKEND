@@ -295,7 +295,17 @@ export const listMyPayments = async (req, res) => {
       .populate("subscription")
       .sort({ createdAt: -1 });
 
-    return successResponse(res, 200, "Payments fetched", payments);
+    const data = payments.map((p) => {
+      const obj = p?.toObject ? p.toObject() : { ...p };
+      const amountPaise = Number(obj.amount);
+      return {
+        ...obj,
+        amountPaise: Number.isFinite(amountPaise) ? amountPaise : obj.amount,
+        amountInr: Number.isFinite(amountPaise) ? amountPaise / 100 : undefined
+      };
+    });
+
+    return successResponse(res, 200, "Payments fetched", data);
   } catch (e) {
     logger.error("List payments failed", {
       error: serializeError(e),

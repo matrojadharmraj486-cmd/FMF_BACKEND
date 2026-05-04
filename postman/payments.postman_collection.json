@@ -25,6 +25,20 @@
       }
     },
     {
+      "name": "My Payments History",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/payments/history",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "payments", "history"]
+        }
+      }
+    },
+    {
       "name": "Verify Payment (Success)",
       "request": {
         "method": "POST",

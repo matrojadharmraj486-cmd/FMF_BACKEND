@@ -1,0 +1,92 @@
+{
+  "info": {
+    "_postman_id": "0b1bfbb3-4d57-4a4f-8ad6-8b5fbf4c8f39",
+    "name": "Notifications (FCM)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Flutter: Register FCM Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{fcmToken}}\",\n  \"platform\": \"android\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications", "register"]
+        }
+      }
+    },
+    {
+      "name": "Flutter: Unregister FCM Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{fcmToken}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications/unregister",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications", "unregister"]
+        }
+      }
+    },
+    {
+      "name": "Flutter: List My Notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/notifications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notifications"]
+        }
+      }
+    },
+    {
+      "name": "Admin: Send Notification To User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{targetUserId}}\",\n  \"title\": \"Test Notification\",\n  \"body\": \"Hello from admin\",\n  \"data\": { \"screen\": \"home\" }\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/notifications/send",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "admin", "notifications", "send"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "userToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "fcmToken", "value": "" },
+    { "key": "deviceId", "value": "" },
+    { "key": "targetUserId", "value": "" }
+  ]
+}
+
