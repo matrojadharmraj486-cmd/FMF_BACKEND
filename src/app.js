@@ -31,6 +31,9 @@ import faqRoutes from "./routes/faq.routes.js";
 import adminFaqRoutes from "./routes/admin.faq.routes.js";
 import adminEditorRoutes from "./routes/admin.editor.routes.js";
 import adminOpinionRoutes from "./routes/admin.opinion.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import adminNotificationRoutes from "./routes/admin.notification.routes.js";
+import adminPaymentRoutes from "./routes/admin.payment.routes.js";
 
 
 const app = express();
@@ -90,6 +93,7 @@ app.use("/api", opinionRoutes);
 app.use("/api", subscriptionRoutes);
 app.use("/api", supportTicketRoutes);
 app.use("/api", faqRoutes);
+app.use("/api", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);
@@ -106,6 +110,8 @@ app.use("/api/admin", adminStatsRoutes);
 app.use("/api/admin", adminFaqRoutes);
 app.use("/api/admin", adminEditorRoutes);
 app.use("/api/admin", adminOpinionRoutes);
+app.use("/api/admin", adminNotificationRoutes);
+app.use("/api/admin", adminPaymentRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
 

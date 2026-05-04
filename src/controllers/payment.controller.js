@@ -288,3 +288,19 @@ export const handleWebhook = async (req, res) => {
     return errorResponse(res, 500, msg);
   }
 };
+
+export const listMyPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({ user: req.user?._id })
+      .populate("subscription")
+      .sort({ createdAt: -1 });
+
+    return successResponse(res, 200, "Payments fetched", payments);
+  } catch (e) {
+    logger.error("List payments failed", {
+      error: serializeError(e),
+      userId: req.user?._id
+    });
+    return errorResponse(res, 500, e.message);
+  }
+};
