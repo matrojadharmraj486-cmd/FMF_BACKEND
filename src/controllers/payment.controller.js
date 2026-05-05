@@ -5,6 +5,8 @@ import User from "../models/User.js";
 import { getRazorpayClient } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
+import { sendBrevoEmail } from "../utils/email.js";
+import { buildSubscriptionActivatedEmail } from "../utils/emailTemplates.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
 const formatPrice = (value) => {
@@ -50,6 +52,8 @@ const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) 
       lastPaymentId: paymentId
     }
   });
+
+  return { startDate: now, endDate };
 };
 
 export const createOrder = async (req, res) => {
@@ -181,11 +185,36 @@ export const verifyPayment = async (req, res) => {
       payment.razorpaySignature = razorpay_signature;
       await payment.save();
 
-      await activateSubscriptionForUser({
+      const { startDate, endDate } = await activateSubscriptionForUser({
         userId: payment.user,
         subscription: payment.subscription,
         paymentId: payment._id
       });
+
+      try {
+        const user = await User.findById(payment.user).lean();
+        const email = String(user?.email || "").trim();
+        if (email) {
+          const tpl = buildSubscriptionActivatedEmail({
+            userName: user?.fullName || "User",
+            planName: payment.subscription?.name,
+            startDate,
+            expiryDate: endDate
+          });
+          await sendBrevoEmail({
+            to: email,
+            subject: tpl.subject,
+            text: tpl.text,
+            html: tpl.html
+          });
+        }
+      } catch (e) {
+        logger.warn("Subscription activation email failed", {
+          userId: payment.user,
+          paymentId: payment._id,
+          error: e.message
+        });
+      }
     }
 
     return successResponse(res, 200, "Payment verified", {

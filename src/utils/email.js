@@ -3,12 +3,12 @@ import { postJson } from "./httpClient.js";
 
 export const sendBrevoEmail = async ({ to, subject, text, html }) => {
   const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME || "FMF";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "notification@familymedicineflashback.com";
+  const senderName = process.env.BREVO_SENDER_NAME || "Family Medicine Flashback";
   const apiUrl = process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email";
 
-  if (!apiKey || !senderEmail)
-    throw new Error("BREVO_API_KEY and BREVO_SENDER_EMAIL are required for Brevo email");
+  if (!apiKey)
+    throw new Error("BREVO_API_KEY is required for Brevo email");
 
   const payload = {
     sender: {

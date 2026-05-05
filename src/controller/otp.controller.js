@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email, sendBulk9Sms } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
 import { sendBrevoEmail } from "../utils/email.js";
+import { buildOtpEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
@@ -86,10 +87,13 @@ export const sendOtp = async (req, res) => {
         if (!response.ok)
           return errorResponse(res, 502, "Failed to send OTP email");
       } else {
+        const name = user?.fullName || "User";
+        const tpl = buildOtpEmail({ userName: name, otpCode: otp, ttlMinutes });
         await sendBrevoEmail({
           to: normalizedEmail,
-          subject,
-          text: message
+          subject: tpl.subject || subject,
+          text: tpl.text || message,
+          html: tpl.html
         });
       }
 

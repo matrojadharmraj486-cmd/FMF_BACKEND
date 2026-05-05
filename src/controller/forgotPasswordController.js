@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
 import { sendBrevoEmail } from "../utils/email.js";
+import { buildOtpEmail } from "../utils/emailTemplates.js";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
@@ -41,10 +42,12 @@ export const forgotPassword = async (req, res) => {
       if (!response.ok)
         return errorResponse(res, 502, "Failed to send OTP email");
     } else {
+      const tpl = buildOtpEmail({ userName: user?.fullName || "User", otpCode: otp, ttlMinutes });
       await sendBrevoEmail({
         to: email,
-        subject,
-        text: message
+        subject: tpl.subject || subject,
+        text: tpl.text || message,
+        html: tpl.html
       });
     }
   } catch (err) {
