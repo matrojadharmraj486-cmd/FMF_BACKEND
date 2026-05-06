@@ -34,6 +34,7 @@ import adminOpinionRoutes from "./routes/admin.opinion.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import adminNotificationRoutes from "./routes/admin.notification.routes.js";
 import adminPaymentRoutes from "./routes/admin.payment.routes.js";
+import adminOrderRoutes from "./routes/admin.order.routes.js";
 
 
 const app = express();
@@ -112,6 +113,7 @@ app.use("/api/admin", adminEditorRoutes);
 app.use("/api/admin", adminOpinionRoutes);
 app.use("/api/admin", adminNotificationRoutes);
 app.use("/api/admin", adminPaymentRoutes);
+app.use("/api/admin", adminOrderRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
 
