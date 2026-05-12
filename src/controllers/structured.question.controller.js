@@ -9,6 +9,17 @@ const toAbsolute = (url, req) => {
   return url.startsWith("http") ? url : `${origin}${url}`;
 };
 
+const mapBlocksToAbsolute = (blocks, req) => {
+  const arr = Array.isArray(blocks) ? blocks : [];
+  return arr.map((b) => {
+    const block = b && typeof b === "object" ? { ...b } : { type: "text", text: String(b || "") };
+    if (block.type === "image" && block.url) {
+      block.url = toAbsolute(block.url, req);
+    }
+    return block;
+  });
+};
+
 const normalizePart = (raw) => {
   const s = String(raw || "").toLowerCase().replace(/\s+/g, "").replace(/-/g, "");
   if (["part1", "1", "p1", "i", "parti"].includes(s)) return "Part 1";
@@ -111,6 +122,8 @@ const withComputedAnswer = (obj) => {
     obj.answer = sq.answer;
   } else if (sq.answerType === "image") {
     obj.answerImage = sq.answerImage;
+  } else if (sq.answerType === "rich") {
+    obj.answerBlocks = sq.answerBlocks || [];
   }
   obj.sub_questions = [];
   return obj;
@@ -164,8 +177,12 @@ export const getStructuredQuestions = async (req, res) => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
+        if (sq.answerType === "rich") {
+          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+        }
         return sq;
       });
+      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Questions fetched successfully", {
@@ -235,8 +252,8 @@ export const createStructuredQuestion = async (req, res) => {
       if (!sqPart || !sqText || !rawType) {
         return errorResponse(res, 400, `sub_questions[${row}] part, text, answerType required`);
       }
-      if (!["text", "image"].includes(rawType)) {
-        return errorResponse(res, 400, `sub_questions[${row}] answerType must be 'text' or 'image'`);
+      if (!["text", "image", "rich"].includes(rawType)) {
+        return errorResponse(res, 400, `sub_questions[${row}] answerType must be 'text', 'image' or 'rich'`);
       }
 
       if (rawType === "text") {
@@ -253,7 +270,7 @@ export const createStructuredQuestion = async (req, res) => {
           answerType: "text",
           answer: ans
         });
-      } else {
+      } else if (rawType === "image") {
         const img = String(sq.answerImage || "").trim();
         if (!img) {
           return errorResponse(res, 400, `sub_questions[${row}] answerImage required for answerType=image`);
@@ -264,6 +281,19 @@ export const createStructuredQuestion = async (req, res) => {
           answerType: "image",
           answer: [],
           answerImage: (img.startsWith("http") || img.startsWith("/uploads/")) ? img : `/uploads/${img}`
+        });
+      } else {
+        const blocks = normalizeBlocks(sq.answerBlocks);
+        if (!blocks.length) {
+          return errorResponse(res, 400, `sub_questions[${row}] answerBlocks required for answerType=rich`);
+        }
+        normalizedSubs.push({
+          part: sqPart,
+          text: sqText,
+          answerType: "rich",
+          answer: [],
+          answerImage: undefined,
+          answerBlocks: blocks
         });
       }
     }
@@ -308,8 +338,12 @@ export const createStructuredQuestion = async (req, res) => {
       if (sq.answerType === "image" && sq.answerImage) {
         sq.answerImage = toAbsolute(sq.answerImage, req);
       }
+      if (sq.answerType === "rich") {
+        sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+      }
       return sq;
     });
+    obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
 
     return res.status(201).json({
       success: true,
@@ -673,8 +707,12 @@ export const adminListStructuredQuestions = async (req, res) => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
+        if (sq.answerType === "rich") {
+          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+        }
         return sq;
       });
+      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Admin questions fetched", data);
@@ -725,8 +763,12 @@ export const searchStructuredQuestions = async (req, res) => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
+        if (sq.answerType === "rich") {
+          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+        }
         return sq;
       });
+      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
 
@@ -751,8 +793,12 @@ export const getStructuredQotdQuestions = async (req, res) => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
+        if (sq.answerType === "rich") {
+          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+        }
         return sq;
       });
+      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "QOTD questions fetched", {
@@ -993,19 +1039,41 @@ export const updateStructuredSub = async (req, res) => {
     if (!doc) return errorResponse(res, 404, "Question not found");
     const sub = doc.sub_questions.id(subId);
     if (!sub) return errorResponse(res, 404, "Sub-question not found");
-    const { part, text, answerType, answer, answerImage } = req.body;
+    const { part, text, answerType, answer, answerImage, answerBlocks } = req.body;
     if (part) sub.part = part;
     if (text) sub.text = text;
-    if (answerType) sub.answerType = answerType;
-    if (answerType === "text") {
+    const effectiveType = String(answerType || sub.answerType || "text").trim().toLowerCase();
+    if (answerType && !["text", "image", "rich"].includes(effectiveType)) {
+      return errorResponse(res, 400, "answerType must be 'text', 'image' or 'rich'");
+    }
+    if (answerType) sub.answerType = effectiveType;
+
+    if (effectiveType === "text") {
+      sub.answerBlocks = [];
       sub.answerImage = undefined;
-      sub.answer = Array.isArray(answer) ? answer : (answer ? String(answer).split(";").map(s => s.trim()) : []);
-    } else if (answerType === "image") {
+      sub.answer = Array.isArray(answer)
+        ? answer
+        : (answer ? String(answer).split(";").map(s => s.trim()).filter(Boolean) : []);
+    } else if (effectiveType === "image") {
+      sub.answerBlocks = [];
       sub.answer = [];
       if (answerImage) sub.answerImage = answerImage.startsWith("http") ? answerImage : `/uploads/${answerImage}`;
+    } else if (effectiveType === "rich") {
+      const normalized = normalizeBlocks(answerBlocks);
+      if (!normalized.length) return errorResponse(res, 400, "answerBlocks required for rich answers");
+      sub.answer = [];
+      sub.answerImage = undefined;
+      sub.answerBlocks = normalized;
     }
     await doc.save();
-    return successResponse(res, 200, "Sub-question updated", doc);
+    const obj = doc.toObject();
+    obj.sub_questions = (obj.sub_questions || []).map((sq) => {
+      if (sq.answerType === "image" && sq.answerImage) sq.answerImage = toAbsolute(sq.answerImage, req);
+      if (sq.answerType === "rich") sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+      return sq;
+    });
+    obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+    return successResponse(res, 200, "Sub-question updated", withComputedAnswer(obj));
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
@@ -1035,4 +1103,25 @@ export const uploadStructuredSubImage = async (req, res) => {
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
+};
+
+const normalizeBlocks = (value) => {
+  const blocks = Array.isArray(value) ? value : [];
+  const out = [];
+  for (const b of blocks) {
+    if (!b || typeof b !== "object") continue;
+    const type = String(b.type || "").trim().toLowerCase();
+    if (type !== "text" && type !== "image") continue;
+    if (type === "text") {
+      const text = String(b.text || "").trim();
+      if (!text) continue;
+      out.push({ type: "text", text });
+    } else {
+      const url = String(b.url || "").trim();
+      if (!url) continue;
+      const alt = String(b.alt || "").trim();
+      out.push({ type: "image", url, ...(alt ? { alt } : {}) });
+    }
+  }
+  return out;
 };

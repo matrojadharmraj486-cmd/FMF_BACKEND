@@ -5,19 +5,36 @@ import { logger } from "../utils/logger.js";
 
 export const createQuestion = async (req, res) => {
   try {
-    const { year, part, question, answerType, answerText } = req.body;
+    const { year, part, question, answerType, answerText, answerBlocks } = req.body;
     if (!year || !part || !question || !answerType)
       return errorResponse(res, 400, "year, part, question, answerType required");
-    if (!["text", "image"].includes(answerType))
-      return errorResponse(res, 400, "answerType must be 'text' or 'image'");
+    if (!["text", "image", "rich"].includes(String(answerType).toLowerCase()))
+      return errorResponse(res, 400, "answerType must be 'text', 'image' or 'rich'");
     let doc = null;
-    if (answerType === "text") {
+    const normalizedType = String(answerType).toLowerCase();
+    if (normalizedType === "text") {
       if (!answerText) return errorResponse(res, 400, "answerText required for text type");
       doc = await Question.create({ year, part, question, answerType, answerText });
-    } else {
+    } else if (normalizedType === "image") {
       const fileUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
       if (!fileUrl) return errorResponse(res, 400, "answerImage file required for image type");
       doc = await Question.create({ year, part, question, answerType, answerImage: fileUrl });
+    } else {
+      const blocks = Array.isArray(answerBlocks) ? answerBlocks : [];
+      const normalized = blocks
+        .filter(b => b && typeof b === "object")
+        .map(b => ({
+          type: String(b.type || "").trim().toLowerCase(),
+          text: b.text,
+          url: b.url,
+          alt: b.alt
+        }))
+        .filter(b => (b.type === "text" && String(b.text || "").trim()) || (b.type === "image" && String(b.url || "").trim()))
+        .map(b => (b.type === "text"
+          ? { type: "text", text: String(b.text || "").trim() }
+          : { type: "image", url: String(b.url || "").trim(), ...(String(b.alt || "").trim() ? { alt: String(b.alt || "").trim() } : {}) }));
+      if (!normalized.length) return errorResponse(res, 400, "answerBlocks required for rich type");
+      doc = await Question.create({ year, part, question, answerType: "rich", answerBlocks: normalized });
     }
     return successResponse(res, 201, "Question created", doc);
   } catch (e) {
@@ -38,6 +55,14 @@ export const getQuestions = async (req, res) => {
       if (obj.answerType === "image" && obj.answerImage && !obj.answerImage.startsWith("http")) {
         obj.answerImage = `${origin}${obj.answerImage}`;
       }
+      if (obj.answerType === "rich" && Array.isArray(obj.answerBlocks)) {
+        obj.answerBlocks = obj.answerBlocks.map((b) => {
+          if (b?.type === "image" && b.url && !String(b.url).startsWith("http")) {
+            return { ...b, url: `${origin}${b.url}` };
+          }
+          return b;
+        });
+      }
       return obj;
     });
     return successResponse(res, 200, "Questions fetched", data);
@@ -51,8 +76,35 @@ export const updateQuestion = async (req, res) => {
     const { id } = req.params;
     const payload = { ...req.body };
     if (req.file) payload.answerImage = `/uploads/${req.file.filename}`;
-    if (payload.answerType && !["text", "image"].includes(payload.answerType))
-      return errorResponse(res, 400, "answerType must be 'text' or 'image'");
+    if (payload.answerType && !["text", "image", "rich"].includes(String(payload.answerType).toLowerCase()))
+      return errorResponse(res, 400, "answerType must be 'text', 'image' or 'rich'");
+
+    if (payload.answerType) payload.answerType = String(payload.answerType).toLowerCase();
+    if (payload.answerType === "rich") {
+      const blocks = Array.isArray(payload.answerBlocks) ? payload.answerBlocks : [];
+      const normalized = blocks
+        .filter(b => b && typeof b === "object")
+        .map(b => ({
+          type: String(b.type || "").trim().toLowerCase(),
+          text: b.text,
+          url: b.url,
+          alt: b.alt
+        }))
+        .filter(b => (b.type === "text" && String(b.text || "").trim()) || (b.type === "image" && String(b.url || "").trim()))
+        .map(b => (b.type === "text"
+          ? { type: "text", text: String(b.text || "").trim() }
+          : { type: "image", url: String(b.url || "").trim(), ...(String(b.alt || "").trim() ? { alt: String(b.alt || "").trim() } : {}) }));
+      if (!normalized.length) return errorResponse(res, 400, "answerBlocks required for rich type");
+      payload.answerBlocks = normalized;
+      payload.answerText = undefined;
+      payload.answerImage = undefined;
+    } else if (payload.answerType === "text") {
+      payload.answerImage = undefined;
+      payload.answerBlocks = [];
+    } else if (payload.answerType === "image") {
+      payload.answerText = undefined;
+      payload.answerBlocks = [];
+    }
     const doc = await Question.findByIdAndUpdate(id, payload, { new: true });
     if (!doc) return errorResponse(res, 404, "Question not found");
     return successResponse(res, 200, "Question updated", doc);
