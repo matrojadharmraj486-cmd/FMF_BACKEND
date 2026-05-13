@@ -22,6 +22,21 @@ const mapBlocksToAbsolute = (blocks, req) => {
   });
 };
 
+const wantsPlainFormat = (req) => {
+  const raw = String(req?.query?.format || req?.query?.plain || "").trim().toLowerCase();
+  return raw === "plain" || raw === "1" || raw === "true";
+};
+
+const mapBlocksForResponse = (blocks, req) => {
+  const abs = mapBlocksToAbsolute(blocks, req);
+  if (!wantsPlainFormat(req)) return abs;
+  return abs.map((b) => {
+    if (!b || typeof b !== "object") return b;
+    if (b.type === "text") return { ...b, text: stripHtmlToText(b.text) };
+    return b;
+  });
+};
+
 const normalizePart = (raw) => {
   const s = String(raw || "").toLowerCase().replace(/\s+/g, "").replace(/-/g, "");
   if (["part1", "1", "p1", "i", "parti"].includes(s)) return "Part 1";
@@ -193,22 +208,24 @@ export const getStructuredQuestions = async (req, res) => {
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
       obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         if (sq.answerType === "rich") {
-          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+          sq.answerBlocks = mapBlocksForResponse(sq.answerBlocks, req);
         }
         if (sq.answerType === "text") {
           sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
         }
+        if (wantsPlainFormat(req)) sq.text = stripHtmlToText(sq.text);
         return sq;
       });
       obj.main_question_answer = Array.isArray(obj.main_question_answer)
         ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
         : [];
-      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+      obj.main_answer_blocks = mapBlocksForResponse(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Questions fetched successfully", {
@@ -729,22 +746,24 @@ export const adminListStructuredQuestions = async (req, res) => {
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
       obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         if (sq.answerType === "rich") {
-          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+          sq.answerBlocks = mapBlocksForResponse(sq.answerBlocks, req);
         }
         if (sq.answerType === "text") {
           sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
         }
+        if (wantsPlainFormat(req)) sq.text = stripHtmlToText(sq.text);
         return sq;
       });
       obj.main_question_answer = Array.isArray(obj.main_question_answer)
         ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
         : [];
-      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+      obj.main_answer_blocks = mapBlocksForResponse(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "Admin questions fetched", data);
@@ -791,22 +810,24 @@ export const searchStructuredQuestions = async (req, res) => {
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
       obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         if (sq.answerType === "rich") {
-          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+          sq.answerBlocks = mapBlocksForResponse(sq.answerBlocks, req);
         }
         if (sq.answerType === "text") {
           sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
         }
+        if (wantsPlainFormat(req)) sq.text = stripHtmlToText(sq.text);
         return sq;
       });
       obj.main_question_answer = Array.isArray(obj.main_question_answer)
         ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
         : [];
-      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+      obj.main_answer_blocks = mapBlocksForResponse(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
 
@@ -827,22 +848,24 @@ export const getStructuredQotdQuestions = async (req, res) => {
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
       obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
           sq.answerImage = toAbsolute(sq.answerImage, req);
         }
         if (sq.answerType === "rich") {
-          sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+          sq.answerBlocks = mapBlocksForResponse(sq.answerBlocks, req);
         }
         if (sq.answerType === "text") {
           sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
         }
+        if (wantsPlainFormat(req)) sq.text = stripHtmlToText(sq.text);
         return sq;
       });
       obj.main_question_answer = Array.isArray(obj.main_question_answer)
         ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
         : [];
-      obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+      obj.main_answer_blocks = mapBlocksForResponse(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
     return successResponse(res, 200, "QOTD questions fetched", {
