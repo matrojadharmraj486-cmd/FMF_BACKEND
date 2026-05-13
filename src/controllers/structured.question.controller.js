@@ -1,7 +1,9 @@
 import xlsx from "xlsx";
+import fs from "fs";
 import StructuredQuestion from "../models/StructuredQuestion.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
+import { uploadImageFile } from "../utils/cloudinary.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -1297,9 +1299,15 @@ export const deleteStructuredSub = async (req, res) => {
 export const uploadStructuredSubImage = async (req, res) => {
   try {
     if (!req.file) return errorResponse(res, 400, "image file required");
-    const url = `/uploads/${req.file.filename}`;
-    const absolute = toAbsolute(url, req);
-    return successResponse(res, 200, "Image uploaded", { url: absolute });
+
+    const uploaded = await uploadImageFile(req.file.path, "fmf/structured-answers");
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch {
+      // ignore cleanup errors
+    }
+
+    return successResponse(res, 200, "Image uploaded", { url: uploaded.url, publicId: uploaded.publicId });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }

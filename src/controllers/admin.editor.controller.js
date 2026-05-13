@@ -1,21 +1,20 @@
+import fs from "fs";
 import { errorResponse } from "../utils/response.js";
-
-const toAbsolute = (url, req) => {
-  if (!url) return url;
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const proto = (forwardedProto ? forwardedProto.split(",")[0] : req.protocol) || "https";
-  const origin = `${proto}://${req.get("host")}`;
-  return url.startsWith("http") ? url : `${origin}${url}`;
-};
+import { uploadImageFile } from "../utils/cloudinary.js";
 
 export const uploadEditorImage = async (req, res) => {
   try {
     if (!req.file) return errorResponse(res, 400, "image file required");
-    const relative = `/uploads/${req.file.filename}`;
-    const url = toAbsolute(relative, req);
-    return res.status(200).json({ url });
+
+    const uploaded = await uploadImageFile(req.file.path, "fmf/editor");
+    try {
+      await fs.promises.unlink(req.file.path);
+    } catch {
+      // ignore cleanup errors
+    }
+
+    return res.status(200).json({ url: uploaded.url, publicId: uploaded.publicId });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
 };
-
