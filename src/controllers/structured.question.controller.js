@@ -102,6 +102,24 @@ const parseBoolean = (value) => {
   return undefined;
 };
 
+const stripHtmlToText = (value) => {
+  const s = String(value ?? "").trim();
+  if (!s) return "";
+  if (!/[<>]/.test(s) && !/&nbsp;|&amp;|&lt;|&gt;|&#\d+;/.test(s)) return s;
+  return s
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = Number(code);
+      return Number.isFinite(n) ? String.fromCharCode(n) : " ";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 const normalizeQuestionType = (value) => {
   const v = String(value || "").trim().toLowerCase();
   if (!v) return "";
@@ -180,8 +198,14 @@ export const getStructuredQuestions = async (req, res) => {
         if (sq.answerType === "rich") {
           sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
         }
+        if (sq.answerType === "text") {
+          sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
+        }
         return sq;
       });
+      obj.main_question_answer = Array.isArray(obj.main_question_answer)
+        ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
+        : [];
       obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
@@ -260,7 +284,7 @@ export const createStructuredQuestion = async (req, res) => {
         if (!Array.isArray(sq.answer) || sq.answer.length === 0) {
           return errorResponse(res, 400, `sub_questions[${row}] answer array required for answerType=text`);
         }
-        const ans = sq.answer.map(a => String(a || "").trim()).filter(Boolean);
+        const ans = sq.answer.map(stripHtmlToText).filter(Boolean);
         if (!ans.length) {
           return errorResponse(res, 400, `sub_questions[${row}] answer array must contain non-empty values`);
         }
@@ -309,7 +333,7 @@ export const createStructuredQuestion = async (req, res) => {
       const arr = Array.isArray(main_question_answer)
         ? main_question_answer
         : String(main_question_answer).split(";");
-      const cleaned = arr.map(a => String(a || "").trim()).filter(Boolean);
+      const cleaned = arr.map(stripHtmlToText).filter(Boolean);
       if (cleaned.length) payload.main_question_answer = cleaned;
     }
     if (isDirect !== undefined) {
@@ -710,8 +734,14 @@ export const adminListStructuredQuestions = async (req, res) => {
         if (sq.answerType === "rich") {
           sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
         }
+        if (sq.answerType === "text") {
+          sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
+        }
         return sq;
       });
+      obj.main_question_answer = Array.isArray(obj.main_question_answer)
+        ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
+        : [];
       obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
@@ -766,8 +796,14 @@ export const searchStructuredQuestions = async (req, res) => {
         if (sq.answerType === "rich") {
           sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
         }
+        if (sq.answerType === "text") {
+          sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
+        }
         return sq;
       });
+      obj.main_question_answer = Array.isArray(obj.main_question_answer)
+        ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
+        : [];
       obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
@@ -796,8 +832,14 @@ export const getStructuredQotdQuestions = async (req, res) => {
         if (sq.answerType === "rich") {
           sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
         }
+        if (sq.answerType === "text") {
+          sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
+        }
         return sq;
       });
+      obj.main_question_answer = Array.isArray(obj.main_question_answer)
+        ? obj.main_question_answer.map(stripHtmlToText).filter(Boolean)
+        : [];
       obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
       return withComputedAnswer(obj);
     });
@@ -813,24 +855,182 @@ export const getStructuredQotdQuestions = async (req, res) => {
 export const updateStructuredQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    const payload = { ...req.body };
-    if (Object.prototype.hasOwnProperty.call(payload, "paper")) {
+    const payload = { ...(req.body || {}) };
+
+    const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+    const pickFirst = (obj, keys) => {
+      for (const k of keys) {
+        if (hasOwn(obj, k)) return obj[k];
+      }
+      return undefined;
+    };
+
+    const doc = await StructuredQuestion.findById(id);
+    if (!doc) return errorResponse(res, 404, "Question not found");
+
+    if (hasOwn(payload, "year")) {
+      const parsedYear = Number(payload.year);
+      if (!Number.isFinite(parsedYear)) return errorResponse(res, 400, "year must be a number");
+      doc.year = parsedYear;
+    }
+
+    if (hasOwn(payload, "part")) {
+      const parsedPart = normalizePart(payload.part) || payload.part;
+      if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
+        return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
+      }
+      doc.part = parsedPart;
+    }
+
+    if (hasOwn(payload, "paper")) {
       const nextPaper = normalizePaper(payload.paper);
       if (!nextPaper && String(payload.paper || "").trim()) {
         return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
       }
-      payload.paper = nextPaper || payload.paper;
+      doc.paper = nextPaper || payload.paper;
     }
+
+    if (hasOwn(payload, "id") && payload.id !== undefined && payload.id !== null && String(payload.id).trim()) {
+      doc.id = String(payload.id).trim();
+    }
+
+    if (hasOwn(payload, "question_text") && payload.question_text !== undefined) {
+      doc.question_text = String(payload.question_text || "").trim();
+    }
+
+    if (hasOwn(payload, "isDirect")) {
+      const parsedDirect = parseBoolean(payload.isDirect);
+      if (parsedDirect === undefined) return errorResponse(res, 400, "isDirect must be boolean");
+      doc.isDirect = parsedDirect;
+    }
+
+    if (hasOwn(payload, "main_question_answer")) {
+      const next = Array.isArray(payload.main_question_answer)
+        ? payload.main_question_answer.map(stripHtmlToText).filter(Boolean)
+        : (payload.main_question_answer ? String(payload.main_question_answer).split(";").map(stripHtmlToText).filter(Boolean) : []);
+      doc.main_question_answer = next;
+    }
+
+    if (hasOwn(payload, "main_answer_blocks")) {
+      doc.main_answer_blocks = normalizeBlocks(payload.main_answer_blocks);
+    }
+
     if (Object.prototype.hasOwnProperty.call(payload, "QOTD")) {
       const parsedQotd = parseBoolean(payload.QOTD);
       if (parsedQotd === undefined) {
         return errorResponse(res, 400, "QOTD must be boolean");
       }
-      payload.QOTD = parsedQotd;
+      doc.QOTD = parsedQotd;
     }
-    const doc = await StructuredQuestion.findByIdAndUpdate(id, payload, { new: true });
-    if (!doc) return errorResponse(res, 404, "Question not found");
-    return successResponse(res, 200, "Question updated", doc);
+
+    // Full structured edit (admin sending full sub_questions array)
+    if (hasOwn(payload, "sub_questions") && Array.isArray(payload.sub_questions)) {
+      const nextSubs = [];
+      for (const sq of payload.sub_questions) {
+        const part = String(sq?.part || "").trim();
+        const text = String(sq?.text || "").trim();
+        const answerType = String(sq?.answerType || "text").trim().toLowerCase();
+        if (!part || !text) return errorResponse(res, 400, "sub_questions items require part and text");
+        if (!["text", "image", "rich"].includes(answerType)) {
+          return errorResponse(res, 400, "sub_questions.answerType must be 'text', 'image' or 'rich'");
+        }
+
+        if (answerType === "text") {
+          const answer = Array.isArray(sq?.answer)
+            ? sq.answer.map(stripHtmlToText).filter(Boolean)
+            : (sq?.answer ? String(sq.answer).split(";").map(stripHtmlToText).filter(Boolean) : []);
+          nextSubs.push({ part, text, answerType: "text", answer, answerImage: undefined, answerBlocks: [] });
+        } else if (answerType === "image") {
+          const raw = String(sq?.answerImage || "").trim();
+          nextSubs.push({
+            part,
+            text,
+            answerType: "image",
+            answer: [],
+            answerImage: raw ? (raw.startsWith("http") || raw.startsWith("/uploads/") ? raw : `/uploads/${raw}`) : undefined,
+            answerBlocks: []
+          });
+        } else {
+          const blocks = normalizeBlocks(sq?.answerBlocks);
+          nextSubs.push({
+            part,
+            text,
+            answerType: "rich",
+            answer: [],
+            answerImage: undefined,
+            answerBlocks: blocks
+          });
+        }
+      }
+      doc.sub_questions = nextSubs;
+    }
+
+    // Direct edit convenience: accept root-level answer fields and map them into sub_questions[0].
+    const rootAnswerTypeRaw = pickFirst(payload, ["answerType", "answer_type"]);
+    const rootBlocksRaw = pickFirst(payload, ["answerBlocks", "answer_blocks", "main_answer_blocks"]);
+    const rootAnswerRaw = pickFirst(payload, ["answer", "main_question_answer"]);
+    const rootImageRaw = pickFirst(payload, ["answerImage", "answer_image", "answer_image_url"]);
+    const rootHasDirectAnswer =
+      rootAnswerTypeRaw !== undefined ||
+      rootBlocksRaw !== undefined ||
+      rootAnswerRaw !== undefined ||
+      rootImageRaw !== undefined;
+
+    if (rootHasDirectAnswer && !hasOwn(payload, "sub_questions")) {
+      const effectiveType = String(rootAnswerTypeRaw || doc.sub_questions?.[0]?.answerType || "text").trim().toLowerCase();
+      if (!["text", "image", "rich"].includes(effectiveType)) {
+        return errorResponse(res, 400, "answerType must be 'text', 'image' or 'rich'");
+      }
+
+      const directText = String(doc.question_text || "").trim() || String(payload.question_text || "").trim();
+      if (!Array.isArray(doc.sub_questions) || doc.sub_questions.length !== 1) {
+        doc.sub_questions = [{ part: "a", text: directText, answerType: "text", answer: [], answerImage: undefined, answerBlocks: [] }];
+      }
+      doc.isDirect = true;
+      doc.sub_questions[0].part = "a";
+      doc.sub_questions[0].text = directText;
+      doc.sub_questions[0].answerType = effectiveType;
+
+      if (effectiveType === "text") {
+        const answer = Array.isArray(rootAnswerRaw)
+          ? rootAnswerRaw.map(stripHtmlToText).filter(Boolean)
+          : (rootAnswerRaw ? String(rootAnswerRaw).split(";").map(stripHtmlToText).filter(Boolean) : []);
+        doc.sub_questions[0].answer = answer;
+        doc.sub_questions[0].answerImage = undefined;
+        doc.sub_questions[0].answerBlocks = [];
+        doc.main_question_answer = answer;
+        doc.main_answer_blocks = [];
+      } else if (effectiveType === "image") {
+        const raw = String(rootImageRaw || "").trim();
+        if (!raw) return errorResponse(res, 400, "answerImage required for answerType=image");
+        const answerImage = raw.startsWith("http") || raw.startsWith("/uploads/") ? raw : `/uploads/${raw}`;
+        doc.sub_questions[0].answer = [];
+        doc.sub_questions[0].answerImage = answerImage;
+        doc.sub_questions[0].answerBlocks = [];
+        doc.main_question_answer = [];
+        doc.main_answer_blocks = [{ type: "image", url: answerImage }];
+      } else {
+        const blocks = normalizeBlocks(rootBlocksRaw);
+        if (!blocks.length) return errorResponse(res, 400, "answerBlocks required for answerType=rich");
+        doc.sub_questions[0].answer = [];
+        doc.sub_questions[0].answerImage = undefined;
+        doc.sub_questions[0].answerBlocks = blocks;
+        doc.main_question_answer = [];
+        doc.main_answer_blocks = blocks;
+      }
+    }
+
+    await doc.save();
+    const obj = doc.toObject();
+    obj.sub_questions = (obj.sub_questions || []).map((sq) => {
+      if (sq.answerType === "image" && sq.answerImage) sq.answerImage = toAbsolute(sq.answerImage, req);
+      if (sq.answerType === "rich") sq.answerBlocks = mapBlocksToAbsolute(sq.answerBlocks, req);
+      if (sq.answerType === "text") sq.answer = Array.isArray(sq.answer) ? sq.answer.map(stripHtmlToText).filter(Boolean) : [];
+      return sq;
+    });
+    obj.main_answer_blocks = mapBlocksToAbsolute(obj.main_answer_blocks, req);
+
+    return successResponse(res, 200, "Question updated", withComputedAnswer(obj));
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
@@ -1052,8 +1252,8 @@ export const updateStructuredSub = async (req, res) => {
       sub.answerBlocks = [];
       sub.answerImage = undefined;
       sub.answer = Array.isArray(answer)
-        ? answer
-        : (answer ? String(answer).split(";").map(s => s.trim()).filter(Boolean) : []);
+        ? answer.map(stripHtmlToText).filter(Boolean)
+        : (answer ? String(answer).split(";").map(stripHtmlToText).filter(Boolean) : []);
     } else if (effectiveType === "image") {
       sub.answerBlocks = [];
       sub.answer = [];
