@@ -1,6 +1,7 @@
 import express from "express";
 import { adminAuthenticate } from "../middleware/adminAuth.js";
 import {
+  bulkDeleteUsersAdmin,
   deleteUserAdmin,
   getUserAdmin,
   listUsers,
@@ -11,6 +12,7 @@ import {
 const router = express.Router();
 
 router.get("/users", adminAuthenticate, listUsers);
+router.post("/users/bulk-delete", adminAuthenticate, bulkDeleteUsersAdmin);
 router.get("/users/:id", adminAuthenticate, getUserAdmin);
 router.put("/users/:id", adminAuthenticate, updateUserAdmin);
 router.delete("/users/:id", adminAuthenticate, deleteUserAdmin);

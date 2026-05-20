@@ -12,7 +12,7 @@ const parseOptionalNumber = (value) => {
 const sortPipeline = (match) => [
   { $match: match || {} },
   { $addFields: { _orderSort: { $ifNull: ["$order", 2147483647] } } },
-  { $sort: { _orderSort: 1, createdAt: -1 } },
+  { $sort: { _orderSort: 1, createdAt: 1 } },
   { $project: { _orderSort: 0 } }
 ];
 

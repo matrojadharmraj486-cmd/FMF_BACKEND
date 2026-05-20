@@ -20,16 +20,24 @@ const userSchema = new mongoose.Schema({
     endDate: Date,
     lastPaymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" }
   },
-state: {
-  id: String,
-  name: String
-},
-district: {
-  id: String,
-  name: String
-},
+  state: {
+    id: String,
+    name: String
+  },
+  district: {
+    id: String,
+    name: String
+  },
 
   profileImg: String,
+  address: {
+    addressLine1: String,
+    addressLine2: String,
+    city: String,
+    state: String,
+    country: String,
+    pincode: String
+  },
   cityId: mongoose.Schema.Types.ObjectId,
   password: { type: String, select: false },
   isVerified: { type: Boolean, default: false },

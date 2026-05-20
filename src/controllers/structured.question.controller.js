@@ -70,16 +70,20 @@ const toRomanPaper = (value) => {
   return value;
 };
 
+const parsePaperFilter = (paper) => {
+  if (paper === undefined || paper === null) return undefined;
+  const trimmed = String(paper).trim();
+  if (!trimmed) return undefined;
+  return normalizePaper(trimmed) || trimmed;
+};
+
+// Backward-compatible predicate used by app/search endpoints:
+// when a paper is provided, include legacy rows where paper is missing.
 const buildPaperPredicate = (paper) => {
-  const p = normalizePaper(paper) || String(paper || "").trim();
+  const p = parsePaperFilter(paper);
   if (!p) return null;
   return {
-    $or: [
-      { paper: p },
-      { paper: { $exists: false } },
-      { paper: null },
-      { paper: "" }
-    ]
+    $or: [{ paper: p }, { paper: { $exists: false } }, { paper: null }, { paper: "" }]
   };
 };
 
@@ -244,11 +248,11 @@ export const createStructuredQuestion = async (req, res) => {
       part,
       paper,
       question_text,
-      sub_questions,
       id,
       QOTD,
       isDirect,
-      main_question_answer
+      main_question_answer,
+      answerType
     } = req.body || {};
 
     if (year === undefined || year === null || year === "") {
@@ -267,66 +271,67 @@ export const createStructuredQuestion = async (req, res) => {
       return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
     }
 
-    let parsedPaper = undefined;
-    if (paper !== undefined && paper !== null && String(paper).trim()) {
-      parsedPaper = normalizePaper(paper);
-      if (!parsedPaper) {
-        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
-      }
-    }
+    const parsedPaper = parsePaperFilter(paper);
 
     if (!question_text || !String(question_text).trim()) {
       return errorResponse(res, 400, "question_text required");
     }
 
-    if (!Array.isArray(sub_questions) || sub_questions.length < 1) {
-      return errorResponse(res, 400, "sub_questions required with at least 1 item");
-    }
+    const directFlag = isDirect !== undefined ? parseBoolean(isDirect) : false;
+    if (directFlag === undefined) return errorResponse(res, 400, "isDirect must be boolean");
+
+    const pickFirst = (obj, keys) => {
+      for (const k of keys) {
+        if (obj && Object.prototype.hasOwnProperty.call(obj, k)) return obj[k];
+      }
+      return undefined;
+    };
 
     const normalizedSubs = [];
-    for (let i = 0; i < sub_questions.length; i++) {
-      const sq = sub_questions[i] || {};
-      const row = i + 1;
+    const payload = {
+      year: parsedYear,
+      part: parsedPart,
+      ...(parsedPaper ? { paper: parsedPaper } : {}),
+      question_text: String(question_text).trim(),
+      isDirect: Boolean(directFlag)
+    };
 
-      const sqPart = String(sq.part || "").trim();
-      const sqText = String(sq.text || "").trim();
-      const rawType = String(sq.answerType || "").trim().toLowerCase();
+    if (payload.isDirect) {
+      const rawType = String(answerType || "").trim().toLowerCase() || "rich";
+      if (rawType !== "rich") return errorResponse(res, 400, "answerType must be 'rich' for direct questions");
+      const rootBlocksRaw = pickFirst(req.body, ["answerBlocks", "answer_blocks"]);
+      const blocks = normalizeBlocks(rootBlocksRaw);
+      if (!blocks.length) return errorResponse(res, 400, "answerBlocks required for direct questions");
+      payload.main_answer_blocks = blocks;
+      payload.sub_questions = [];
+    } else {
+      const mainBlocksRaw = pickFirst(req.body, ["mainQuestionAnswerBlocks", "main_question_answer_blocks"]);
+      const mainBlocks = normalizeBlocks(mainBlocksRaw);
+      if (mainBlocks.length) payload.main_answer_blocks = mainBlocks;
 
-      if (!sqPart || !sqText || !rawType) {
-        return errorResponse(res, 400, `sub_questions[${row}] part, text, answerType required`);
+      const subQuestionsRaw = pickFirst(req.body, ["sub_questions", "subQuestions"]);
+      const sub_questions = Array.isArray(subQuestionsRaw) ? subQuestionsRaw : [];
+      if (sub_questions.length < 1) {
+        return errorResponse(res, 400, "sub_questions required with at least 1 item");
       }
-      if (!["text", "image", "rich"].includes(rawType)) {
-        return errorResponse(res, 400, `sub_questions[${row}] answerType must be 'text', 'image' or 'rich'`);
-      }
 
-      if (rawType === "text") {
-        if (!Array.isArray(sq.answer) || sq.answer.length === 0) {
-          return errorResponse(res, 400, `sub_questions[${row}] answer array required for answerType=text`);
+      for (let i = 0; i < sub_questions.length; i++) {
+        const sq = sub_questions[i] || {};
+        const row = i + 1;
+
+        const sqPart = String(sq.part || "").trim();
+        const sqText = String(sq.text || "").trim();
+        const rawType = String(sq.answerType || "").trim().toLowerCase() || "rich";
+
+        if (!sqPart || !sqText) {
+          return errorResponse(res, 400, `sub_questions[${row}] part and text required`);
         }
-        const ans = sq.answer.map(stripHtmlToText).filter(Boolean);
-        if (!ans.length) {
-          return errorResponse(res, 400, `sub_questions[${row}] answer array must contain non-empty values`);
+        if (rawType !== "rich") {
+          return errorResponse(res, 400, `sub_questions[${row}] answerType must be 'rich'`);
         }
-        normalizedSubs.push({
-          part: sqPart,
-          text: sqText,
-          answerType: "text",
-          answer: ans
-        });
-      } else if (rawType === "image") {
-        const img = String(sq.answerImage || "").trim();
-        if (!img) {
-          return errorResponse(res, 400, `sub_questions[${row}] answerImage required for answerType=image`);
-        }
-        normalizedSubs.push({
-          part: sqPart,
-          text: sqText,
-          answerType: "image",
-          answer: [],
-          answerImage: (img.startsWith("http") || img.startsWith("/uploads/")) ? img : `/uploads/${img}`
-        });
-      } else {
-        const blocks = normalizeBlocks(sq.answerBlocks);
+
+        const blocksRaw = pickFirst(sq, ["answerBlocks", "answer_blocks"]);
+        const blocks = normalizeBlocks(blocksRaw);
         if (!blocks.length) {
           return errorResponse(res, 400, `sub_questions[${row}] answerBlocks required for answerType=rich`);
         }
@@ -339,28 +344,16 @@ export const createStructuredQuestion = async (req, res) => {
           answerBlocks: blocks
         });
       }
+
+      payload.sub_questions = normalizedSubs;
     }
 
-    const payload = {
-      year: parsedYear,
-      part: parsedPart,
-      ...(parsedPaper ? { paper: parsedPaper } : {}),
-      question_text: String(question_text).trim(),
-      sub_questions: normalizedSubs
-    };
     if (main_question_answer !== undefined) {
       const arr = Array.isArray(main_question_answer)
         ? main_question_answer
         : String(main_question_answer).split(";");
       const cleaned = arr.map(stripHtmlToText).filter(Boolean);
       if (cleaned.length) payload.main_question_answer = cleaned;
-    }
-    if (isDirect !== undefined) {
-      const parsedDirect = parseBoolean(isDirect);
-      if (parsedDirect === undefined) {
-        return errorResponse(res, 400, "isDirect must be boolean");
-      }
-      payload.isDirect = parsedDirect;
     }
     if (id !== undefined && id !== null && String(id).trim()) {
       payload.id = String(id).trim();
@@ -736,10 +729,8 @@ export const adminListStructuredQuestions = async (req, res) => {
       const p = normalizePart(part) || part;
       filter.part = p;
     }
-    const paperPredicate = buildPaperPredicate(paper);
-    if (paperPredicate) {
-      filter.$and = (filter.$and || []).concat([paperPredicate]);
-    }
+    const parsedPaper = parsePaperFilter(paper);
+    if (parsedPaper) filter.paper = parsedPaper;
     const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
       const obj = d.toObject();
@@ -1111,13 +1102,7 @@ export const deleteStructuredQuestionsByYearPart = async (req, res) => {
     if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
       return errorResponse(res, 400, "part must be 'Part 1' or 'Part 2'");
     }
-    let parsedPaper = undefined;
-    if (paper !== undefined && paper !== null && String(paper).trim()) {
-      parsedPaper = normalizePaper(paper);
-      if (!parsedPaper) {
-        return errorResponse(res, 400, "paper must be 'Paper 1', 'Paper 2', 'Paper 3' or 'Paper 4'");
-      }
-    }
+    const parsedPaper = parsePaperFilter(paper);
 
     const deleteFilter = { year: parsedYear, part: parsedPart };
     if (parsedPaper) deleteFilter.paper = parsedPaper;

@@ -1,6 +1,15 @@
 import Opinion from "../models/Opinion.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
+const ALLOWED_LIMITS = new Set([10, 20, 50, 100]);
+
+const parsePositiveInt = (value) => {
+  const n = Number(String(value ?? "").trim());
+  if (!Number.isFinite(n)) return undefined;
+  const i = Math.floor(n);
+  return i > 0 ? i : undefined;
+};
+
 export const createOpinion = async (req, res) => {
   const { name, opinion } = req.body;
 
@@ -21,8 +30,43 @@ export const getOpinions = async (req, res) => {
 
 export const listOpinionsAdmin = async (req, res) => {
   try {
-    const data = await Opinion.find().sort({ createdAt: -1 });
-    return successResponse(res, 200, "Opinions fetched", data);
+    const { q, page, limit } = req.query || {};
+
+    const wantsPagination = page !== undefined || limit !== undefined;
+    const parsedPage = parsePositiveInt(page) || 1;
+    const parsedLimitRaw = parsePositiveInt(limit);
+    let parsedLimit = wantsPagination ? 20 : undefined;
+    if (parsedLimitRaw !== undefined) {
+      if (parsedLimitRaw > 100) parsedLimit = 100;
+      else if (ALLOWED_LIMITS.has(parsedLimitRaw)) parsedLimit = parsedLimitRaw;
+    }
+
+    const filter = {};
+    const term = String(q || "").trim();
+    if (term) {
+      const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(safe, "i");
+      filter.$or = [{ name: regex }, { opinion: regex }];
+    }
+
+    if (!wantsPagination) {
+      const data = await Opinion.find(filter).sort({ createdAt: -1 });
+      return successResponse(res, 200, "Opinions fetched", data);
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+    const [data, total] = await Promise.all([
+      Opinion.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parsedLimit),
+      Opinion.countDocuments(filter)
+    ]);
+    const totalPages = Math.max(1, Math.ceil(total / parsedLimit));
+    return successResponse(res, 200, "Opinions fetched", {
+      data,
+      page: parsedPage,
+      limit: parsedLimit,
+      total,
+      totalPages
+    });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
