@@ -170,9 +170,10 @@ const withComputedAnswer = (obj) => {
 
 const getNumericQuestionId = (value) => {
   const s = String(value || "").trim();
-  const match = s.match(/^Q(\d+)$/i);
-  if (!match) return null;
-  const n = Number(match[1]);
+  // Supports "Q12" and ids like "2025-Part 2-Paper 2-Q12"
+  const matches = Array.from(s.matchAll(/Q(\d+)/gi));
+  if (!matches.length) return null;
+  const n = Number(matches[matches.length - 1][1]);
   return Number.isFinite(n) ? n : null;
 };
 
@@ -208,10 +209,11 @@ export const getStructuredQuestions = async (req, res) => {
     }
     const docs = sortStructuredQuestions(await StructuredQuestion.find(filter));
     const data = docs.map((d, index) => {
-      const obj = d.toObject();
-      obj.id = obj.id || String(obj._id);
-      const fallbackQuestionId = `Q${index + 1}`;
-      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+    const obj = d.toObject();
+    obj.id = obj.id || String(obj._id);
+    const fallbackQuestionId = `Q${index + 1}`;
+    const numericId = getNumericQuestionId(obj.id);
+    obj.questionId = numericId !== null ? `Q${numericId}` : fallbackQuestionId;
       if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
@@ -369,7 +371,8 @@ export const createStructuredQuestion = async (req, res) => {
     const created = await StructuredQuestion.create(payload);
     const obj = created.toObject();
     obj.id = obj.id || String(obj._id);
-    obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : undefined;
+    const numericId = getNumericQuestionId(obj.id);
+    obj.questionId = numericId !== null ? `Q${numericId}` : undefined;
     obj.sub_questions = (obj.sub_questions || []).map(sq => {
       if (sq.answerType === "image" && sq.answerImage) {
         sq.answerImage = toAbsolute(sq.answerImage, req);
@@ -736,7 +739,8 @@ export const adminListStructuredQuestions = async (req, res) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
-      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      const numericId = getNumericQuestionId(obj.id);
+      obj.questionId = numericId !== null ? `Q${numericId}` : fallbackQuestionId;
       if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
@@ -800,7 +804,8 @@ export const searchStructuredQuestions = async (req, res) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
-      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      const numericId = getNumericQuestionId(obj.id);
+      obj.questionId = numericId !== null ? `Q${numericId}` : fallbackQuestionId;
       if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {
@@ -838,7 +843,8 @@ export const getStructuredQotdQuestions = async (req, res) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
       const fallbackQuestionId = `Q${index + 1}`;
-      obj.questionId = obj.id && /^Q\d+$/i.test(obj.id) ? obj.id : fallbackQuestionId;
+      const numericId = getNumericQuestionId(obj.id);
+      obj.questionId = numericId !== null ? `Q${numericId}` : fallbackQuestionId;
       if (wantsPlainFormat(req)) obj.question_text = stripHtmlToText(obj.question_text);
       obj.sub_questions = (obj.sub_questions || []).map(sq => {
         if (sq.answerType === "image" && sq.answerImage) {

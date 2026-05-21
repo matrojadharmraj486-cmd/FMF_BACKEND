@@ -38,9 +38,10 @@ const normalizeAddressPayload = (raw) => {
 export const listUsers = async (req, res) => {
   try {
     const { q, page, limit } = req.query || {};
+    const wantsPagination = page !== undefined || limit !== undefined || q !== undefined;
     const parsedPage = parsePositiveInt(page) || 1;
     const parsedLimitRaw = parsePositiveInt(limit);
-    let parsedLimit = 20;
+    let parsedLimit = wantsPagination ? 20 : undefined;
     if (parsedLimitRaw !== undefined) {
       if (parsedLimitRaw > 100) parsedLimit = 100;
       else if (ALLOWED_LIMITS.has(parsedLimitRaw)) parsedLimit = parsedLimitRaw;
@@ -52,6 +53,31 @@ export const listUsers = async (req, res) => {
       const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(safe, "i");
       filter.$or = [{ fullName: regex }, { email: regex }, { mobileNumber: regex }];
+    }
+
+    if (!wantsPagination) {
+      const users = await User.find(
+        filter,
+        {
+          fullName: 1,
+          email: 1,
+          mobileNumber: 1,
+          isVerified: 1,
+          isActive: 1,
+          createdAt: 1
+        }
+      ).sort({ createdAt: -1 });
+
+      const data = users.map((u) => ({
+        _id: u._id,
+        fullName: u.fullName,
+        email: u.email,
+        mobileNumber: u.mobileNumber,
+        isVerified: Boolean(u.isVerified),
+        blocked: u.isActive === false
+      }));
+
+      return successResponse(res, 200, "Users fetched", data);
     }
 
     const skip = (parsedPage - 1) * parsedLimit;

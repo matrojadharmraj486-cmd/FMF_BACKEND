@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 
 const VALID_STATUSES = ["open", "in_progress", "pending_user", "resolved", "closed"];
+const ADMIN_UPDATABLE_STATUSES = ["open", "in_progress", "resolved"];
 const VALID_PRIORITIES = ["low", "medium", "high", "urgent"];
 
 const toAbsolute = (url, req) => {
@@ -21,6 +22,8 @@ const mapTicket = (doc, req) => {
   if (obj.user && typeof obj.user === "object" && obj.user.mobileNumber) {
     obj.mobileNumber = obj.user.mobileNumber;
   }
+  // Admin panel no longer uses assignment; hide to avoid client-side errors.
+  delete obj.assignedTo;
   return obj;
 };
 
@@ -147,7 +150,6 @@ export const listSupportTicketsAdmin = async (req, res) => {
 
     const tickets = await SupportTicket.find(filter)
       .populate("user", "fullName email mobileNumber")
-      .populate("assignedTo", "fullName email")
       .sort({ createdAt: -1 });
 
     return successResponse(
@@ -165,7 +167,6 @@ export const getSupportTicketAdminById = async (req, res) => {
   try {
     const ticket = await SupportTicket.findById(req.params.id)
       .populate("user", "fullName email mobileNumber")
-      .populate("assignedTo", "fullName email")
       .populate("statusHistory.changedBy", "fullName email role");
 
     if (!ticket) {
@@ -180,7 +181,7 @@ export const getSupportTicketAdminById = async (req, res) => {
 
 export const updateSupportTicketAdmin = async (req, res) => {
   try {
-    const { status, assignedTo, adminNote, note } = req.body || {};
+    const { status, adminNote, note } = req.body || {};
     const ticket = await SupportTicket.findById(req.params.id);
 
     if (!ticket) {
@@ -191,17 +192,13 @@ export const updateSupportTicketAdmin = async (req, res) => {
 
     if (status !== undefined) {
       const normalizedStatus = String(status).trim().toLowerCase();
-      if (!VALID_STATUSES.includes(normalizedStatus)) {
-        return errorResponse(res, 400, "status must be one of open, in_progress, pending_user, resolved, closed");
+      if (!ADMIN_UPDATABLE_STATUSES.includes(normalizedStatus)) {
+        return errorResponse(res, 400, "status must be one of open, in_progress, resolved");
       }
       if (ticket.status !== normalizedStatus) {
         ticket.status = normalizedStatus;
         historyChanged = true;
       }
-    }
-
-    if (assignedTo !== undefined) {
-      ticket.assignedTo = assignedTo || undefined;
     }
 
     if (adminNote !== undefined) {
@@ -223,13 +220,11 @@ export const updateSupportTicketAdmin = async (req, res) => {
       ticketNumber: ticket.ticketNumber,
       adminId: req.user._id,
       status: ticket.status,
-      assignedTo: ticket.assignedTo || null,
       historyChanged
     });
 
     const populated = await SupportTicket.findById(ticket._id)
       .populate("user", "fullName email mobileNumber")
-      .populate("assignedTo", "fullName email")
       .populate("statusHistory.changedBy", "fullName email role");
 
     return successResponse(res, 200, "Support ticket updated", mapTicket(populated, req));

@@ -30,9 +30,10 @@ const withComputedAnswer = (obj) => {
 
 const getNumericQuestionId = (value) => {
   const s = String(value || "").trim();
-  const match = s.match(/^Q(\d+)$/i);
-  if (!match) return null;
-  const n = Number(match[1]);
+  // Supports "Q12" and ids like "2025-Part 2-Paper 2-Q12"
+  const matches = Array.from(s.matchAll(/Q(\d+)/gi));
+  if (!matches.length) return null;
+  const n = Number(matches[matches.length - 1][1]);
   return Number.isFinite(n) ? n : null;
 };
 
@@ -57,9 +58,9 @@ const normalizeStructuredQuestion = (doc, req, fallbackQuestionId) => {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : { ...doc };
   obj.id = obj.id || String(obj._id);
-  const hasNumericId = obj.id && /^Q\d+$/i.test(obj.id);
-  if (hasNumericId) {
-    obj.questionId = obj.id;
+  const numericId = getNumericQuestionId(obj.id);
+  if (numericId !== null) {
+    obj.questionId = `Q${numericId}`;
   } else if (fallbackQuestionId) {
     obj.questionId = fallbackQuestionId;
   } else {
@@ -89,7 +90,7 @@ const buildFallbackQuestionIdMap = async (docs) => {
   const groups = new Map();
   for (const d of docs) {
     const id = d.id || d._id;
-    if (id && /^Q\d+$/i.test(String(id))) continue;
+    if (id && getNumericQuestionId(String(id)) !== null) continue;
     const key = `${d.year}||${d.part}||${d.paper || ""}`;
     if (!groups.has(key)) groups.set(key, { year: d.year, part: d.part, paper: d.paper });
   }

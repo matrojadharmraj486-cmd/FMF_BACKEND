@@ -24,7 +24,7 @@ const withPriceFormat = (doc) => {
 
 export const listActiveSubscriptions = async (req, res) => {
   try {
-    const subs = await Subscription.find({ isActive: true }).sort({ price: 1 });
+    const subs = await Subscription.find({ isActive: true, isDeleted: { $ne: true } }).sort({ price: 1 });
     return successResponse(res, 200, "Subscriptions fetched", subs.map(withPriceFormat));
   } catch (e) {
     return errorResponse(res, 500, e.message);

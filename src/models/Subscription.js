@@ -10,6 +10,7 @@ const subscriptionSchema = new mongoose.Schema(
     currency: { type: String, default: "INR" },
     durationDays: { type: Number, required: true },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false, index: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
   },

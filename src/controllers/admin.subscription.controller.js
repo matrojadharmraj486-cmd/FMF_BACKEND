@@ -1,5 +1,8 @@
 import Subscription from "../models/Subscription.js";
+import Payment from "../models/Payment.js";
+import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import mongoose from "mongoose";
 
 const ALLOWED_GST_PERCENTS = new Set([0, 5, 18]);
 
@@ -76,7 +79,11 @@ export const createSubscription = async (req, res) => {
 export const listSubscriptions = async (req, res) => {
   try {
     const includeInactive = (req.query.includeInactive || "").toString().toLowerCase() === "true";
-    const filter = includeInactive ? {} : { isActive: true };
+    const includeDeleted = (req.query.includeDeleted || "").toString().toLowerCase() === "true";
+    const filter = {
+      ...(includeInactive ? {} : { isActive: true }),
+      ...(includeDeleted ? {} : { isDeleted: { $ne: true } })
+    };
     const subs = await Subscription.find(filter).sort({ createdAt: -1 });
     return successResponse(res, 200, "Subscriptions fetched", subs.map(withPriceFormat));
   } catch (e) {
@@ -87,6 +94,7 @@ export const listSubscriptions = async (req, res) => {
 export const updateSubscription = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid subscription id");
     const { name, description, price, gstPercent, durationDays, currency, isActive } = req.body || {};
 
     const update = {};
@@ -122,6 +130,7 @@ export const updateSubscription = async (req, res) => {
 export const updateSubscriptionStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid subscription id");
     const { isActive } = req.body || {};
     if (typeof isActive !== "boolean") {
       return errorResponse(res, 400, "isActive boolean required");
@@ -133,6 +142,47 @@ export const updateSubscriptionStatus = async (req, res) => {
     );
     if (!subscription) return errorResponse(res, 404, "Subscription not found");
     return successResponse(res, 200, "Subscription status updated", withPriceFormat(subscription));
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const deleteSubscriptionAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid subscription id");
+
+    const subscription = await Subscription.findById(id);
+    if (!subscription) return errorResponse(res, 404, "Subscription not found");
+
+    const now = new Date();
+    const [activeUsersCount, anyUserRefsCount, paymentsCount] = await Promise.all([
+      User.countDocuments({
+        "subscription.plan": subscription._id,
+        "subscription.status": "active",
+        "subscription.endDate": { $gt: now }
+      }),
+      User.countDocuments({ "subscription.plan": subscription._id }),
+      Payment.countDocuments({ subscription: subscription._id })
+    ]);
+
+    const isReferenced = activeUsersCount > 0 || anyUserRefsCount > 0 || paymentsCount > 0;
+    if (isReferenced) {
+      subscription.isDeleted = true;
+      subscription.isActive = false;
+      subscription.updatedBy = req.user?._id;
+      await subscription.save();
+
+      return successResponse(res, 200, "Subscription deleted", {
+        deleted: true,
+        softDeleted: true,
+        activeUsersCount,
+        paymentsCount
+      });
+    }
+
+    await Subscription.findByIdAndDelete(subscription._id);
+    return successResponse(res, 200, "Subscription deleted", { deleted: true });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }
