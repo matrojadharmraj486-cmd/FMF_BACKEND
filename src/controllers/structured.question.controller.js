@@ -141,6 +141,53 @@ const stripHtmlToText = (value) => {
     .trim();
 };
 
+const decodeHtmlEntities = (value) => {
+  const s = String(value ?? "");
+  if (!s) return "";
+  return s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = Number(code);
+      return Number.isFinite(n) ? String.fromCharCode(n) : " ";
+    });
+};
+
+const parseExcelAnswerToArray = (value) => {
+  const raw = String(value ?? "");
+  if (!raw.trim()) return [];
+
+  // Keep line breaks (Excel answers frequently contain CRLF) and gently normalize HTML-ish inputs.
+  let s = raw
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "")
+    .replace(/<\/?(ul|ol)[^>]*>/gi, "\n");
+  s = decodeHtmlEntities(s);
+
+  const lines = s
+    .split("\n")
+    .flatMap((line) => line.split(";"))
+    .flatMap((line) => {
+      // If a line contains multiple bullet points, split them up.
+      if (/[•\u2022]/.test(line)) return line.split(/[•\u2022]/g);
+      return [line];
+    })
+    .map((line) => String(line || "").trim())
+    .filter(Boolean)
+    .map((line) =>
+      // Remove common "bullet" prefixes while keeping numbering like "1." intact.
+      line.replace(/^(?:[-*•\u2022]|o|➡|→|▪|●|·)\s*/i, "").trim()
+    )
+    .filter(Boolean);
+
+  return lines;
+};
+
 const normalizeQuestionType = (value) => {
   const v = String(value || "").trim().toLowerCase();
   if (!v) return "";
@@ -555,12 +602,12 @@ export const uploadStructuredExcel = async (req, res) => {
         const group = groups.get(key);
         if (isDirectRow) group.isDirect = true;
         if (mainQuestionAnswer) {
-          const mainAns = mainQuestionAnswer.split(";").map(s => s.trim()).filter(Boolean);
+          const mainAns = parseExcelAnswerToArray(mainQuestionAnswer);
           if (mainAns.length) group.main_question_answer = mainAns;
         }
         const sub = { part: sub_part, text: sub_text, answerType };
         if (answerType === "text") {
-          sub.answer = answerText ? answerText.split(";").map(s => s.trim()).filter(Boolean) : [];
+          sub.answer = parseExcelAnswerToArray(answerText);
         } else {
           let resolvedImage = answerImage;
           if (!resolvedImage) resolvedImage = answerText || mainQuestionAnswer;
@@ -1115,6 +1162,56 @@ export const deleteStructuredQuestionsByYearPart = async (req, res) => {
     const result = await StructuredQuestion.deleteMany(deleteFilter);
     const deletedCount = result?.deletedCount || 0;
     return successResponse(res, 200, "Questions deleted", { deletedCount });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const bulkDeleteStructuredQuestions = async (req, res) => {
+  try {
+    const { groups } = req.body || {};
+    if (!Array.isArray(groups)) {
+      return errorResponse(res, 400, "groups must be an array");
+    }
+    if (groups.length > 200) {
+      return errorResponse(res, 400, "groups max size is 200");
+    }
+
+    let deletedDocs = 0;
+    let deletedGroups = 0;
+
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i];
+      if (!g || typeof g !== "object") {
+        return errorResponse(res, 400, `groups[${i}] must be an object`);
+      }
+
+      const parsedYear = Number(g.year);
+      if (!Number.isFinite(parsedYear)) {
+        return errorResponse(res, 400, `groups[${i}].year must be a number`);
+      }
+
+      const parsedPart = normalizePart(g.part);
+      if (!parsedPart || !["Part 1", "Part 2"].includes(parsedPart)) {
+        return errorResponse(res, 400, `groups[${i}].part must be 'Part 1' or 'Part 2'`);
+      }
+
+      const parsedPaper = parsePaperFilter(g.paper);
+      const deleteFilter = { year: parsedYear, part: parsedPart };
+      if (parsedPaper) deleteFilter.paper = parsedPaper;
+
+      const result = await StructuredQuestion.deleteMany(deleteFilter);
+      const deletedCount = result?.deletedCount || 0;
+      deletedDocs += deletedCount;
+      if (deletedCount > 0) deletedGroups += 1;
+    }
+
+    return res.status(200).json({
+      ok: true,
+      requested: groups.length,
+      deletedGroups,
+      deletedDocs
+    });
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }

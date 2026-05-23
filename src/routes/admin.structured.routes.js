@@ -10,6 +10,7 @@ import {
   setActiveStructuredQotd,
   deleteStructuredQuestion,
   deleteStructuredQuestionsByYearPart,
+  bulkDeleteStructuredQuestions,
   updateStructuredSub,
   deleteStructuredSub,
   uploadStructuredSubImage,
@@ -30,6 +31,7 @@ router.put("/questions-structured/:id", adminAuthenticate, updateStructuredQuest
 router.post("/questions-structured/qotd/clear", adminAuthenticate, clearStructuredQotdFlags);
 router.post("/questions-structured/qotd/active/:id", adminAuthenticate, setActiveStructuredQotd);
 router.delete("/questions-structured", adminAuthenticate, deleteStructuredQuestionsByYearPart);
+router.post("/questions-structured/bulk-delete", adminAuthenticate, bulkDeleteStructuredQuestions);
 router.delete("/questions-structured/:id", adminAuthenticate, deleteStructuredQuestion);
 router.put("/questions-structured/:id/sub/:subId", adminAuthenticate, updateStructuredSub);
 router.delete("/questions-structured/:id/sub/:subId", adminAuthenticate, deleteStructuredSub);
