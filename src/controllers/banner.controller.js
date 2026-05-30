@@ -1,5 +1,5 @@
 import fs from "fs";
-import Banner from "../models/Banner.js";
+import Banner, { BANNER_TYPES, BANNER_POSITIONS } from "../models/Banner.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { uploadImageFile } from "../utils/cloudinary.js";
 
@@ -27,18 +27,57 @@ const isValidRedirectionUrl = (value) => {
   return v.startsWith("/") || isValidHttpUrl(v);
 };
 
+const parseBannerType = (value) => {
+  const bannerType = String(value || "").trim();
+  return BANNER_TYPES.includes(bannerType) ? bannerType : null;
+};
+
+const parsePosition = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  const position = Number(value);
+  return Number.isInteger(position) && BANNER_POSITIONS.includes(position) ? position : null;
+};
+
+const parseBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+};
+
+const hasActiveBannerAtPosition = async (position, excludeId) => {
+  const filter = { isActive: true, position };
+  if (excludeId) filter._id = { $ne: excludeId };
+  return Boolean(await Banner.exists(filter));
+};
+
+const hasActiveBannerCapacity = async (excludeId) => {
+  const filter = { isActive: true };
+  if (excludeId) filter._id = { $ne: excludeId };
+  const activeCount = await Banner.countDocuments(filter);
+  return activeCount < BANNER_POSITIONS.length;
+};
+
 export const createBanner = async (req, res) => {
   try {
     console.log("BANNER_CREATE_V2", {
       hasFile: !!req.file,
       bannerType: req.body?.bannerType,
+      position: req.body?.position,
       imageUrl: req.body?.imageUrl,
       redirectionUrl: req.body?.redirectionUrl
     });
-    const bannerType = (req.body.bannerType || "").trim();
-    if (!bannerType) return errorResponse(res, 400, "bannerType required");
-    if (bannerType.length < 2 || bannerType.length > 50) {
-      return errorResponse(res, 400, "bannerType must be between 2 and 50 characters");
+    const bannerType = parseBannerType(req.body.bannerType);
+    if (!bannerType) return errorResponse(res, 400, "bannerType must be one of type1, type2, type3, type4, type5");
+
+    const position = parsePosition(req.body.position);
+    if (!position) return errorResponse(res, 400, "position must be a number between 1 and 5");
+
+    if (!await hasActiveBannerCapacity()) {
+      return errorResponse(res, 400, "Maximum 5 active banners allowed");
+    }
+
+    if (await hasActiveBannerAtPosition(position)) {
+      return errorResponse(res, 400, `An active banner already exists at position ${position}`);
     }
 
     const redirectionUrl = (req.body.redirectionUrl || "").trim();
@@ -66,7 +105,7 @@ export const createBanner = async (req, res) => {
       imageUrl = providedUrl;
     }
 
-    const doc = await Banner.create({ image, imageUrl, bannerType, redirectionUrl, isActive: true });
+    const doc = await Banner.create({ image, imageUrl, bannerType, position, redirectionUrl, isActive: true });
     const data = {
       ...doc.toObject(),
       image: toAbsolute(doc.image, req),
@@ -83,7 +122,7 @@ export const getBanners = async (req, res) => {
     const bannerType = (req.query.bannerType || "").trim();
     const filter = { isActive: true };
     if (bannerType) filter.bannerType = bannerType;
-    const docs = await Banner.find(filter).sort({ createdAt: -1 });
+    const docs = await Banner.find(filter).sort({ position: 1, createdAt: -1 });
     const data = docs.map(d => ({
       ...d.toObject(),
       image: toAbsolute(d.image, req),
@@ -102,12 +141,18 @@ export const updateBanner = async (req, res) => {
     if (!doc) return errorResponse(res, 404, "Banner not found");
 
     if (Object.prototype.hasOwnProperty.call(req.body, "bannerType")) {
-      const bannerType = String(req.body.bannerType || "").trim();
-      if (!bannerType) return errorResponse(res, 400, "bannerType cannot be empty");
-      if (bannerType.length < 2 || bannerType.length > 50) {
-        return errorResponse(res, 400, "bannerType must be between 2 and 50 characters");
-      }
+      const bannerType = parseBannerType(req.body.bannerType);
+      if (!bannerType) return errorResponse(res, 400, "bannerType must be one of type1, type2, type3, type4, type5");
       doc.bannerType = bannerType;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "position")) {
+      const position = parsePosition(req.body.position);
+      if (!position) return errorResponse(res, 400, "position must be a number between 1 and 5");
+      if (doc.isActive && await hasActiveBannerAtPosition(position, id)) {
+        return errorResponse(res, 400, `An active banner already exists at position ${position}`);
+      }
+      doc.position = position;
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, "redirectionUrl")) {
@@ -137,7 +182,17 @@ export const updateBanner = async (req, res) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, "isActive")) {
-      doc.isActive = Boolean(req.body.isActive);
+      const isActive = parseBoolean(req.body.isActive);
+      if (isActive && !doc.position) {
+        return errorResponse(res, 400, "position must be a number between 1 and 5");
+      }
+      if (isActive && !await hasActiveBannerCapacity(id)) {
+        return errorResponse(res, 400, "Maximum 5 active banners allowed");
+      }
+      doc.isActive = isActive;
+      if (isActive && await hasActiveBannerAtPosition(doc.position, id)) {
+        return errorResponse(res, 400, `An active banner already exists at position ${doc.position}`);
+      }
     }
 
     await doc.save();
@@ -168,7 +223,7 @@ export const getAllBannersAdmin = async (req, res) => {
     const bannerType = (req.query.bannerType || "").trim();
     const filter = {};
     if (bannerType) filter.bannerType = bannerType;
-    const docs = await Banner.find(filter).sort({ createdAt: -1 });
+    const docs = await Banner.find(filter).sort({ position: 1, createdAt: -1 });
     const data = docs.map(d => ({
       ...d.toObject(),
       image: toAbsolute(d.image, req),

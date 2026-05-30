@@ -10,6 +10,37 @@ const parsePositiveInt = (value) => {
   return i > 0 ? i : undefined;
 };
 
+const mapOpinion = (doc) => {
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  const email = obj.email || obj.userEmail || obj.user?.email || "";
+  const mobileNumber =
+    obj.mobileNumber ||
+    obj.mobile ||
+    obj.phone ||
+    obj.contactNumber ||
+    obj.user?.mobileNumber ||
+    obj.user?.mobile ||
+    obj.user?.phone ||
+    "";
+
+  return {
+    ...obj,
+    email,
+    userEmail: email,
+    mobileNumber,
+    mobile: mobileNumber,
+    phone: mobileNumber,
+    contactNumber: mobileNumber,
+    user: {
+      ...(obj.user && typeof obj.user === "object" ? obj.user : {}),
+      email,
+      mobileNumber,
+      mobile: mobileNumber,
+      phone: mobileNumber
+    }
+  };
+};
+
 export const createOpinion = async (req, res) => {
   const { name, opinion } = req.body;
 
@@ -17,15 +48,27 @@ export const createOpinion = async (req, res) => {
     return errorResponse(res, 400, "Name and opinion are required");
   }
 
-  const data = await Opinion.create({ name, opinion });
+  const email = String(req.body.email || req.body.userEmail || req.body.user?.email || "").trim();
+  const mobileNumber = String(
+    req.body.mobileNumber ||
+    req.body.mobile ||
+    req.body.phone ||
+    req.body.contactNumber ||
+    req.body.user?.mobileNumber ||
+    req.body.user?.mobile ||
+    req.body.user?.phone ||
+    ""
+  ).trim();
 
-  return successResponse(res, 201, "Opinion created", data);
+  const data = await Opinion.create({ name, opinion, email, mobileNumber });
+
+  return successResponse(res, 201, "Opinion created", mapOpinion(data));
 };
 
 export const getOpinions = async (req, res) => {
   const data = await Opinion.find().sort({ createdAt: -1 });
 
-  return successResponse(res, 200, "Opinions fetched", data);
+  return successResponse(res, 200, "Opinions fetched", data.map(mapOpinion));
 };
 
 export const listOpinionsAdmin = async (req, res) => {
@@ -46,12 +89,12 @@ export const listOpinionsAdmin = async (req, res) => {
     if (term) {
       const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(safe, "i");
-      filter.$or = [{ name: regex }, { opinion: regex }];
+      filter.$or = [{ name: regex }, { opinion: regex }, { email: regex }, { mobileNumber: regex }];
     }
 
     if (!wantsPagination) {
       const data = await Opinion.find(filter).sort({ createdAt: -1 });
-      return successResponse(res, 200, "Opinions fetched", data);
+      return successResponse(res, 200, "Opinions fetched", data.map(mapOpinion));
     }
 
     const skip = (parsedPage - 1) * parsedLimit;
@@ -61,7 +104,7 @@ export const listOpinionsAdmin = async (req, res) => {
     ]);
     const totalPages = Math.max(1, Math.ceil(total / parsedLimit));
     return successResponse(res, 200, "Opinions fetched", {
-      data,
+      data: data.map(mapOpinion),
       page: parsedPage,
       limit: parsedLimit,
       total,

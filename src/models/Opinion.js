@@ -11,6 +11,14 @@ const opinionSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true
+    },
+    email: {
+      type: String,
+      trim: true
+    },
+    mobileNumber: {
+      type: String,
+      trim: true
     }
   },
   { timestamps: true }

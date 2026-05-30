@@ -13,6 +13,45 @@ const parsePositiveInt = (value) => {
   return i > 0 ? i : undefined;
 };
 
+const getSubscriptionInfo = (user) => {
+  const source = user?.toObject ? user.toObject() : { ...(user || {}) };
+  const endDate = source.subscription?.endDate ? new Date(source.subscription.endDate) : null;
+  const isActive =
+    source.subscription?.status === "active" &&
+    endDate instanceof Date &&
+    !Number.isNaN(endDate.getTime()) &&
+    endDate > new Date();
+  const remainingDays = isActive
+    ? Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const subscriptionEndDate = isActive ? endDate.toISOString() : null;
+
+  return {
+    subscriptionStatus: isActive ? "active" : "inactive",
+    remainingDays,
+    subscriptionEndDate,
+    isSubscribed: isActive,
+    subscription: {
+      ...(source.subscription && typeof source.subscription === "object" ? source.subscription : {}),
+      status: isActive ? "active" : "inactive",
+      isActive,
+      remainingDays,
+      endDate: subscriptionEndDate,
+      expiresAt: subscriptionEndDate
+    }
+  };
+};
+
+const mapAdminUser = (user) => {
+  const obj = user?.toObject ? user.toObject() : { ...(user || {}) };
+  return {
+    ...obj,
+    ...getSubscriptionInfo(obj),
+    isVerified: Boolean(obj.isVerified),
+    blocked: obj.isActive === false
+  };
+};
+
 const normalizeAddressPayload = (raw) => {
   if (!raw || typeof raw !== "object") return null;
   const pick = (k) => (hasOwn(raw, k) ? String(raw[k] || "").trim() : undefined);
@@ -62,20 +101,14 @@ export const listUsers = async (req, res) => {
           fullName: 1,
           email: 1,
           mobileNumber: 1,
+          subscription: 1,
           isVerified: 1,
           isActive: 1,
           createdAt: 1
         }
       ).sort({ createdAt: -1 });
 
-      const data = users.map((u) => ({
-        _id: u._id,
-        fullName: u.fullName,
-        email: u.email,
-        mobileNumber: u.mobileNumber,
-        isVerified: Boolean(u.isVerified),
-        blocked: u.isActive === false
-      }));
+      const data = users.map(mapAdminUser);
 
       return successResponse(res, 200, "Users fetched", data);
     }
@@ -88,6 +121,7 @@ export const listUsers = async (req, res) => {
           fullName: 1,
           email: 1,
           mobileNumber: 1,
+          subscription: 1,
           isVerified: 1,
           isActive: 1,
           createdAt: 1
@@ -99,14 +133,7 @@ export const listUsers = async (req, res) => {
       User.countDocuments(filter)
     ]);
 
-    const data = users.map((u) => ({
-      _id: u._id,
-      fullName: u.fullName,
-      email: u.email,
-      mobileNumber: u.mobileNumber,
-      isVerified: Boolean(u.isVerified),
-      blocked: u.isActive === false
-    }));
+    const data = users.map(mapAdminUser);
 
     const totalPages = Math.max(1, Math.ceil(total / parsedLimit));
     return successResponse(res, 200, "Users fetched", {
@@ -127,7 +154,7 @@ export const getUserAdmin = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid user id");
     const user = await User.findById(id);
     if (!user) return errorResponse(res, 404, "User not found");
-    return successResponse(res, 200, "User fetched", user);
+    return successResponse(res, 200, "User fetched", mapAdminUser(user));
   } catch (e) {
     return errorResponse(res, 500, e.message);
   }

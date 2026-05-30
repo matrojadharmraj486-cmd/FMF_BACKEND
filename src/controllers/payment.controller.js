@@ -109,6 +109,7 @@ export const createOrder = async (req, res) => {
 
     return successResponse(res, 201, "Order created", {
       orderId: order.id,
+      orderNumber: payment.orderNumber,
       amount: order.amount,
       currency: order.currency,
       keyId,

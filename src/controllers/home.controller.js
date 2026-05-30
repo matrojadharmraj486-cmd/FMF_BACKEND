@@ -33,7 +33,7 @@ const withComputedAnswer = (obj) => {
 export const getHomeData = async (req, res) => {
   try {
     const [banners, testimonials, qotd] = await Promise.all([
-      Banner.find({ isActive: true }).sort({ createdAt: -1 }),
+      Banner.find({ isActive: true }).sort({ position: 1, createdAt: -1 }),
       Testimonial.find({}).sort({ createdAt: -1 }),
       StructuredQuestion.findOne({ QOTD: true }).sort({ year: -1, part: 1, createdAt: -1 })
     ]);

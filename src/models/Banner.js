@@ -16,6 +16,9 @@ const isValidRedirectionUrl = (value) => {
   return v.startsWith("/") || isValidHttpUrl(v);
 };
 
+export const BANNER_TYPES = ["type1", "type2", "type3", "type4", "type5"];
+export const BANNER_POSITIONS = [1, 2, 3, 4, 5];
+
 const bannerSchema = new mongoose.Schema({
   image: { type: String, required: true },
   imageUrl: { type: String, trim: true },
@@ -28,7 +31,8 @@ const bannerSchema = new mongoose.Schema({
       message: "redirectionUrl must start with '/' or be a valid absolute URL"
     }
   },
-  bannerType: { type: String, required: true, trim: true, minlength: 2, maxlength: 50 },
+  bannerType: { type: String, required: true, trim: true, enum: BANNER_TYPES },
+  position: { type: Number, required: true, enum: BANNER_POSITIONS },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 

@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+export const SUPPORT_TICKET_STATUSES = ["created", "in_progress", "resolved", "closed"];
+
 const attachmentSchema = new mongoose.Schema(
   {
     url: { type: String },
@@ -14,7 +16,7 @@ const statusHistorySchema = new mongoose.Schema(
   {
     status: {
       type: String,
-      enum: ["open", "in_progress", "pending_user", "resolved", "closed"],
+      enum: SUPPORT_TICKET_STATUSES,
       required: true
     },
     note: { type: String, trim: true },
@@ -44,8 +46,8 @@ const supportTicketSchema = new mongoose.Schema(
     attachment: attachmentSchema,
     status: {
       type: String,
-      enum: ["open", "in_progress", "pending_user", "resolved", "closed"],
-      default: "open",
+      enum: SUPPORT_TICKET_STATUSES,
+      default: "created",
       index: true
     },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

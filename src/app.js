@@ -35,6 +35,12 @@ import notificationRoutes from "./routes/notification.routes.js";
 import adminNotificationRoutes from "./routes/admin.notification.routes.js";
 import adminPaymentRoutes from "./routes/admin.payment.routes.js";
 import adminOrderRoutes from "./routes/admin.order.routes.js";
+import adminCouponRoutes from "./routes/admin.coupon.routes.js";
+import {
+  apiFailureLogger,
+  globalErrorHandler,
+  notFoundHandler
+} from "./middleware/apiErrorLogger.js";
 
 
 const app = express();
@@ -83,6 +89,8 @@ app.use(
   })
 );
 
+app.use(apiFailureLogger);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/v1", stateRoutes);
 app.use("/api", questionRoutes);
@@ -114,8 +122,11 @@ app.use("/api/admin", adminOpinionRoutes);
 app.use("/api/admin", adminNotificationRoutes);
 app.use("/api/admin", adminPaymentRoutes);
 app.use("/api/admin", adminOrderRoutes);
+app.use("/api/admin", adminCouponRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/uploads", express.static(uploadsPath));
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
 
 
 export default app;

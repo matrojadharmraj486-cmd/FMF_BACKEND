@@ -1,10 +1,16 @@
-import SupportTicket from "../models/SupportTicket.js";
+import SupportTicket, { SUPPORT_TICKET_STATUSES } from "../models/SupportTicket.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 
-const VALID_STATUSES = ["open", "in_progress", "pending_user", "resolved", "closed"];
-const ADMIN_UPDATABLE_STATUSES = ["open", "in_progress", "resolved"];
 const VALID_PRIORITIES = ["low", "medium", "high", "urgent"];
+const LEGACY_STATUS_MAP = {
+  open: "created",
+  pending_user: "in_progress"
+};
+const STATUS_FILTER_MAP = {
+  created: ["created", "open"],
+  in_progress: ["in_progress", "pending_user"]
+};
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -16,6 +22,13 @@ const toAbsolute = (url, req) => {
 
 const mapTicket = (doc, req) => {
   const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.status = normalizeStatus(obj.status) || obj.status;
+  if (Array.isArray(obj.statusHistory)) {
+    obj.statusHistory = obj.statusHistory.map(item => ({
+      ...item,
+      status: normalizeStatus(item.status) || item.status
+    }));
+  }
   if (obj.attachment?.url) {
     obj.attachment.url = toAbsolute(obj.attachment.url, req);
   }
@@ -25,6 +38,37 @@ const mapTicket = (doc, req) => {
   // Admin panel no longer uses assignment; hide to avoid client-side errors.
   delete obj.assignedTo;
   return obj;
+};
+
+const normalizeStatus = (status) => {
+  const value = String(status || "").trim().toLowerCase();
+  return LEGACY_STATUS_MAP[value] || value;
+};
+
+const migrateLegacyTicketStatus = async (ticket) => {
+  const normalizedStatus = normalizeStatus(ticket.status);
+  let changed = false;
+
+  if (ticket.status !== normalizedStatus && SUPPORT_TICKET_STATUSES.includes(normalizedStatus)) {
+    ticket.status = normalizedStatus;
+    changed = true;
+  }
+
+  if (Array.isArray(ticket.statusHistory)) {
+    ticket.statusHistory.forEach(item => {
+      const normalizedHistoryStatus = normalizeStatus(item.status);
+      if (item.status !== normalizedHistoryStatus && SUPPORT_TICKET_STATUSES.includes(normalizedHistoryStatus)) {
+        item.status = normalizedHistoryStatus;
+        changed = true;
+      }
+    });
+  }
+
+  if (changed) {
+    await ticket.save();
+  }
+
+  return ticket;
 };
 
 export const createSupportTicket = async (req, res) => {
@@ -48,10 +92,10 @@ export const createSupportTicket = async (req, res) => {
       category,
       priority,
       description,
-      status: "open",
+      status: "created",
       statusHistory: [
         {
-          status: "open",
+          status: "created",
           note: "Ticket created",
           changedBy: req.user._id
         }
@@ -136,7 +180,12 @@ export const listSupportTicketsAdmin = async (req, res) => {
     const { status, category, priority, search } = req.query;
     const filter = {};
 
-    if (status) filter.status = String(status).trim().toLowerCase();
+    if (status) {
+      const normalizedStatus = normalizeStatus(status);
+      filter.status = STATUS_FILTER_MAP[normalizedStatus]
+        ? { $in: STATUS_FILTER_MAP[normalizedStatus] }
+        : normalizedStatus;
+    }
     if (category) filter.category = String(category).trim();
     if (priority) filter.priority = String(priority).trim().toLowerCase();
     if (search) {
@@ -165,13 +214,15 @@ export const listSupportTicketsAdmin = async (req, res) => {
 
 export const getSupportTicketAdminById = async (req, res) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.id)
-      .populate("user", "fullName email mobileNumber")
-      .populate("statusHistory.changedBy", "fullName email role");
+    const ticket = await SupportTicket.findById(req.params.id);
 
     if (!ticket) {
       return errorResponse(res, 404, "Support ticket not found");
     }
+
+    await migrateLegacyTicketStatus(ticket);
+    await ticket.populate("user", "fullName email mobileNumber");
+    await ticket.populate("statusHistory.changedBy", "fullName email role");
 
     return successResponse(res, 200, "Support ticket fetched", mapTicket(ticket, req));
   } catch (e) {
@@ -181,19 +232,21 @@ export const getSupportTicketAdminById = async (req, res) => {
 
 export const updateSupportTicketAdmin = async (req, res) => {
   try {
-    const { status, adminNote, note } = req.body || {};
+    const { status, adminNote, statusNote, note } = req.body || {};
     const ticket = await SupportTicket.findById(req.params.id);
 
     if (!ticket) {
       return errorResponse(res, 404, "Support ticket not found");
     }
 
+    await migrateLegacyTicketStatus(ticket);
+
     let historyChanged = false;
 
     if (status !== undefined) {
-      const normalizedStatus = String(status).trim().toLowerCase();
-      if (!ADMIN_UPDATABLE_STATUSES.includes(normalizedStatus)) {
-        return errorResponse(res, 400, "status must be one of open, in_progress, resolved");
+      const normalizedStatus = normalizeStatus(status);
+      if (!SUPPORT_TICKET_STATUSES.includes(normalizedStatus)) {
+        return errorResponse(res, 400, "status must be one of created, in_progress, resolved, closed");
       }
       if (ticket.status !== normalizedStatus) {
         ticket.status = normalizedStatus;
@@ -205,10 +258,11 @@ export const updateSupportTicketAdmin = async (req, res) => {
       ticket.adminNote = String(adminNote || "").trim();
     }
 
-    if (historyChanged || note) {
+    const historyNote = statusNote !== undefined ? statusNote : note;
+    if (historyChanged || historyNote) {
       ticket.statusHistory.push({
         status: ticket.status,
-        note: String(note || "").trim() || `Status updated to ${ticket.status}`,
+        note: String(historyNote || "").trim() || `Status updated to ${ticket.status}`,
         changedBy: req.user._id
       });
     }
@@ -235,6 +289,22 @@ export const updateSupportTicketAdmin = async (req, res) => {
       error: e.message,
       stack: e.stack
     });
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const bulkDeleteSupportTicketsAdmin = async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const normalized = ids.map(String).filter(Boolean);
+    if (!normalized.length) return errorResponse(res, 400, "ids array required");
+
+    const result = await SupportTicket.deleteMany({ _id: { $in: normalized } });
+    return res.status(200).json({
+      success: true,
+      deleted: result.deletedCount || 0
+    });
+  } catch (e) {
     return errorResponse(res, 500, e.message);
   }
 };
