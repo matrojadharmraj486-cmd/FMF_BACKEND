@@ -54,9 +54,13 @@ const formatOrder = (doc, req) => {
   const paymentStatus = normalizePaymentStatus(obj.status);
   const orderStatus = normalizeOrderStatus(obj.status);
   const invoicePath = `/api/admin/orders/${obj._id}/invoice`;
-  const invoiceUrl = toAbsolute(invoicePath, req);
+  const baseUrl = toAbsolute(invoicePath, req);
   const token = req.headers.authorization?.split(" ")[1] || req.query.token;
-  const downloadInvoiceUrl = token ? `${invoiceUrl}?token=${token}` : invoiceUrl;
+  
+  // Both fields will now include the token if it's available in the current request
+  const invoiceUrl = token ? `${baseUrl}?token=${token}` : baseUrl;
+  const downloadInvoiceUrl = invoiceUrl;
+
   const user = obj.user && typeof obj.user === "object"
     ? { ...obj.user, name: obj.user.name || obj.user.fullName || "" }
     : obj.user;
