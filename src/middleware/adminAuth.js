@@ -4,7 +4,7 @@ import { errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 
 export const adminAuthenticate = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
   if (!token) {
     logger.warn("Admin authentication failed: token missing", {
       method: req.method,

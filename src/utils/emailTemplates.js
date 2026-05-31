@@ -80,6 +80,79 @@ Family Medicine Flashback`;
   return { subject, text, html };
 };
 
+export const buildSupportTicketCreatedEmail = ({ userName, ticketNumber, subject: ticketSubject, category, priority } = {}) => {
+  const name = userName ? String(userName).trim() : "there";
+  const subject = `Support Ticket Created: #${ticketNumber}`;
+  const text = `Hi ${name},
+
+Your support ticket has been created successfully.
+
+Ticket Details:
+- Ticket Number: #${ticketNumber}
+- Subject: ${ticketSubject}
+- Category: ${category}
+- Priority: ${priority}
+
+Our team will review your request and get back to you as soon as possible.
+
+Best regards,
+Team FMF
+Family Medicine Flashback`;
+
+  const html = wrapHtml({
+    title: subject,
+    contentHtml: `
+      <div style="font-size:14px;color:#111827;line-height:1.7;">
+        <div>Hi <b>${escapeHtml(name)}</b>,</div>
+        <p style="margin:12px 0 0 0;">Your support ticket has been created successfully.</p>
+        <div style="margin:16px 0;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #eef2ff;">
+          <div><b>Ticket Details</b></div>
+          <div style="margin-top:8px;"><b>Ticket Number:</b> #${escapeHtml(ticketNumber)}</div>
+          <div><b>Subject:</b> ${escapeHtml(ticketSubject)}</div>
+          <div><b>Category:</b> ${escapeHtml(category)}</div>
+          <div><b>Priority:</b> ${escapeHtml(priority)}</div>
+        </div>
+        <p style="margin:12px 0 0 0;">Our team will review your request and get back to you as soon as possible.</p>
+      </div>
+    `
+  });
+  return { subject, text, html };
+};
+
+export const buildSupportTicketUpdatedEmail = ({ userName, ticketNumber, status, note } = {}) => {
+  const name = userName ? String(userName).trim() : "there";
+  const subject = `Support Ticket Updated: #${ticketNumber}`;
+  const text = `Hi ${name},
+
+Your support ticket #${ticketNumber} has been updated.
+
+New Status: ${status}
+${note ? `Note: ${note}` : ""}
+
+You can check the details in the app.
+
+Best regards,
+Team FMF
+Family Medicine Flashback`;
+
+  const html = wrapHtml({
+    title: subject,
+    contentHtml: `
+      <div style="font-size:14px;color:#111827;line-height:1.7;">
+        <div>Hi <b>${escapeHtml(name)}</b>,</div>
+        <p style="margin:12px 0 0 0;">Your support ticket <b>#${escapeHtml(ticketNumber)}</b> has been updated.</p>
+        <div style="margin:16px 0;padding:14px 16px;background:#f9fafb;border-radius:10px;border:1px solid #eef2ff;">
+          <div><b>Update Details</b></div>
+          <div style="margin-top:8px;"><b>New Status:</b> ${escapeHtml(status)}</div>
+          ${note ? `<div style="margin-top:4px;"><b>Note:</b> ${escapeHtml(note)}</div>` : ""}
+        </div>
+        <p style="margin:12px 0 0 0;">You can check the details in the app.</p>
+      </div>
+    `
+  });
+  return { subject, text, html };
+};
+
 export const buildSubscriptionActivatedEmail = ({ userName, planName, startDate, expiryDate } = {}) => {
   const name = userName ? String(userName).trim() : "there";
   const subject = "Subscription Activated";

@@ -55,6 +55,8 @@ const formatOrder = (doc, req) => {
   const orderStatus = normalizeOrderStatus(obj.status);
   const invoicePath = `/api/admin/orders/${obj._id}/invoice`;
   const invoiceUrl = toAbsolute(invoicePath, req);
+  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
+  const downloadInvoiceUrl = token ? `${invoiceUrl}?token=${token}` : invoiceUrl;
   const user = obj.user && typeof obj.user === "object"
     ? { ...obj.user, name: obj.user.name || obj.user.fullName || "" }
     : obj.user;
@@ -69,7 +71,7 @@ const formatOrder = (doc, req) => {
     paymentStatus,
     orderStatus,
     invoiceUrl,
-    downloadInvoiceUrl: invoiceUrl,
+    downloadInvoiceUrl,
     totalAmount,
     amountPaise: Number.isFinite(amountPaise) ? amountPaise : obj.amount,
     amountInr: Number.isFinite(amountPaise) ? amountPaise / 100 : undefined

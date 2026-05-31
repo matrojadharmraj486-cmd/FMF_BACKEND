@@ -1,6 +1,9 @@
 import SupportTicket, { SUPPORT_TICKET_STATUSES } from "../models/SupportTicket.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
+import { sendBrevoEmail } from "../utils/email.js";
+import { buildSupportTicketCreatedEmail, buildSupportTicketUpdatedEmail } from "../utils/emailTemplates.js";
+import User from "../models/User.js";
 
 const VALID_PRIORITIES = ["low", "medium", "high", "urgent"];
 const LEGACY_STATUS_MAP = {
@@ -130,6 +133,29 @@ export const createSupportTicket = async (req, res) => {
       userId: req.user._id,
       status: ticket.status
     });
+
+    try {
+      const tpl = buildSupportTicketCreatedEmail({
+        userName: populated.user?.fullName || "User",
+        ticketNumber: populated.ticketNumber,
+        subject: populated.subject,
+        category: populated.category,
+        priority: populated.priority
+      });
+      if (populated.user?.email) {
+        await sendBrevoEmail({
+          to: populated.user.email,
+          subject: tpl.subject,
+          text: tpl.text,
+          html: tpl.html
+        });
+      }
+    } catch (err) {
+      logger.warn("Support ticket creation email failed", {
+        ticketId: ticket._id,
+        error: err.message
+      });
+    }
 
     return successResponse(res, 201, "Support ticket created", mapTicket(populated, req));
   } catch (e) {
@@ -280,6 +306,31 @@ export const updateSupportTicketAdmin = async (req, res) => {
     const populated = await SupportTicket.findById(ticket._id)
       .populate("user", "fullName email mobileNumber")
       .populate("statusHistory.changedBy", "fullName email role");
+
+    // Send email to user about update
+    if (historyChanged || historyNote) {
+      try {
+        const tpl = buildSupportTicketUpdatedEmail({
+          userName: populated.user?.fullName || "User",
+          ticketNumber: populated.ticketNumber,
+          status: populated.status,
+          note: historyNote
+        });
+        if (populated.user?.email) {
+          await sendBrevoEmail({
+            to: populated.user.email,
+            subject: tpl.subject,
+            text: tpl.text,
+            html: tpl.html
+          });
+        }
+      } catch (err) {
+        logger.warn("Support ticket update email failed", {
+          ticketId: ticket._id,
+          error: err.message
+        });
+      }
+    }
 
     return successResponse(res, 200, "Support ticket updated", mapTicket(populated, req));
   } catch (e) {

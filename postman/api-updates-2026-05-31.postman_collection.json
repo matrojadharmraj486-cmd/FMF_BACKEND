@@ -1,0 +1,532 @@
+{
+  "info": {
+    "name": "FMF API Updates - Admin/Mobile Binding",
+    "_postman_id": "9e9c7508-62ff-4f1e-9e4d-api-updates-20260531",
+    "description": "Focused collection for recently updated backend APIs: banners, support tickets, opinions, users subscription fields, coupons, orders, notifications, and FCM token registration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bannerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "couponId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Banners",
+      "item": [
+        {
+          "name": "Mobile - List Active Banners Sorted By Position",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/banners",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "banners"]
+            },
+            "description": "Returns active banners sorted by position ascending. Mobile should display response order."
+          }
+        },
+        {
+          "name": "Admin - List Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banner",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "banner"]
+            },
+            "description": "Admin list returns position in each banner object."
+          }
+        },
+        {
+          "name": "Admin - Create Banner JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://example.com/banner.jpg\",\n  \"bannerType\": \"type1\",\n  \"position\": 1,\n  \"redirectionUrl\": \"/homeView\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banners",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "banners"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Update Banner JSON",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bannerType\": \"type1\",\n  \"position\": 1,\n  \"redirectionUrl\": \"/homeView\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banners/{{bannerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "banners", "{{bannerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support Tickets",
+      "item": [
+        {
+          "name": "Admin - List Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "support-tickets"]
+            },
+            "description": "Statuses returned as created, in_progress, resolved, closed."
+          }
+        },
+        {
+          "name": "Admin - Update Support Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"adminNote\": \"Admin internal note\",\n  \"statusNote\": \"We are checking this issue\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "support-tickets", "{{ticketId}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Bulk Delete Support Tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\"{{ticketId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets/bulk-delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "support-tickets", "bulk-delete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Opinions",
+      "item": [
+        {
+          "name": "Admin - List Opinions With Email Mobile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/opinions?page=1&limit=20&q=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "opinions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "q",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Each item includes email/userEmail/user.email and mobileNumber/mobile/phone/contactNumber aliases."
+          }
+        },
+        {
+          "name": "Public - Create Opinion With Contact",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Customer Name\",\n  \"opinion\": \"Great app\",\n  \"email\": \"customer@example.com\",\n  \"mobileNumber\": \"9999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/opinions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "opinions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Users",
+      "item": [
+        {
+          "name": "Admin - Search Users For Notification Selection",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?q=test&limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "test"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Use this for admin notification user search/select."
+          }
+        },
+        {
+          "name": "Admin - User Detail With Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{userId}}"]
+            },
+            "description": "Includes subscriptionStatus, remainingDays, subscriptionEndDate, isSubscribed, subscription."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Admin - List Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "coupons"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME50\",\n  \"isActive\": true,\n  \"discountType\": \"percentage\",\n  \"discountValue\": 50,\n  \"description\": \"50% discount for new users\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "coupons"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Delete Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons/{{couponId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "coupons", "{{couponId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Admin - List Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Returns data/items with orderNumber, orderDate, paymentStatus, orderStatus, invoiceUrl, totalAmount, user, subscription."
+          }
+        },
+        {
+          "name": "Admin - Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Download Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}/invoice",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders", "{{orderId}}", "invoice"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Mobile - Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm-device-token-here\",\n  \"platform\": \"android\",\n  \"deviceId\": \"device-id-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "register"]
+            },
+            "description": "Mobile app should call this after login/app launch with current FCM token."
+          }
+        },
+        {
+          "name": "Admin - Send Bulk To Selected Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sendToAll\": false,\n  \"userIds\": [\"{{userId}}\"],\n  \"title\": \"Notification title\",\n  \"body\": \"Notification body\",\n  \"data\": {\n    \"screen\": \"home\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/notifications/send-bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "notifications", "send-bulk"]
+            }
+          }
+        },
+        {
+          "name": "Admin - Send Bulk To All Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sendToAll\": true,\n  \"userIds\": [],\n  \"title\": \"Notification title\",\n  \"body\": \"Notification body\",\n  \"data\": {\n    \"screen\": \"home\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/notifications/send-bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "notifications", "send-bulk"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

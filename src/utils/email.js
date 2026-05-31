@@ -38,13 +38,18 @@ export const sendBrevoEmail = async ({ to, subject, text, html }) => {
     to,
     status: response.status,
     ok: response.ok,
-    data: response.ok ? response.data : undefined
+    data: response.data
   });
 
   if (!response.ok) {
-    const details = typeof response.data === "string"
-      ? response.data
-      : JSON.stringify(response.data);
+    const details = typeof response.data === "object"
+      ? JSON.stringify(response.data)
+      : String(response.data);
+    logger.error("Brevo email failure details", {
+      status: response.status,
+      details,
+      payload: { ...payload, htmlContent: payload.htmlContent ? "(truncated)" : undefined }
+    });
     throw new Error(`Brevo email failed with status ${response.status}: ${details}`);
   }
 
