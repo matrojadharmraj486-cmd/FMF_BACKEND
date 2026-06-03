@@ -1,0 +1,150 @@
+{
+  "info": {
+    "_postman_id": "c1a2b3c4-d5e6-4f7g-8h9i-mobile-api-v2",
+    "name": "FMF Mobile API - Coupons & Notifications",
+    "description": "API collection for Flutter Mobile App: Coupon validation and Push Notifications.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "List Active Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "coupons"]
+            },
+            "description": "Returns a list of all active coupons that users can use."
+          }
+        },
+        {
+          "name": "Validate Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME10\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "coupons", "validate"]
+            },
+            "description": "Checks if a coupon code is valid and returns discount details."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"YOUR_FCM_TOKEN\",\n  \"platform\": \"android\",\n  \"deviceId\": \"UNIQUE_DEVICE_ID\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "register"]
+            },
+            "description": "Registers or updates the FCM token for the logged-in user."
+          }
+        },
+        {
+          "name": "Unregister FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"YOUR_FCM_TOKEN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unregister",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "unregister"]
+            },
+            "description": "Marks an FCM token as inactive (e.g., on logout)."
+          }
+        },
+        {
+          "name": "List My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"]
+            },
+            "description": "Fetches the history of notifications sent to the user."
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/:id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", ":id", "read"],
+              "variable": [
+                { "key": "id", "value": "NOTIFICATION_ID" }
+              ]
+            },
+            "description": "Marks a specific notification as read."
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications", "read-all"]
+            },
+            "description": "Marks all unread notifications for the user as read."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "userToken", "value": "" }
+  ]
+}

@@ -6,6 +6,7 @@ const notificationSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true, trim: true },
     data: { type: Object, default: {} },
+    isRead: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["queued", "sent", "failed"],

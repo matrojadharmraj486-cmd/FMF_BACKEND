@@ -35,6 +35,7 @@ import notificationRoutes from "./routes/notification.routes.js";
 import adminNotificationRoutes from "./routes/admin.notification.routes.js";
 import adminPaymentRoutes from "./routes/admin.payment.routes.js";
 import adminOrderRoutes from "./routes/admin.order.routes.js";
+import couponRoutes from "./routes/coupon.routes.js";
 import adminCouponRoutes from "./routes/admin.coupon.routes.js";
 import {
   apiFailureLogger,
@@ -103,6 +104,7 @@ app.use("/api", subscriptionRoutes);
 app.use("/api", supportTicketRoutes);
 app.use("/api", faqRoutes);
 app.use("/api", notificationRoutes);
+app.use("/api", couponRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/bookmark", bookmarkRoutes);

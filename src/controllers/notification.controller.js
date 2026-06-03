@@ -138,6 +138,33 @@ export const listMyNotifications = async (req, res) => {
   }
 };
 
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await Notification.findOneAndUpdate(
+      { _id: id, user: req.user?._id },
+      { $set: { isRead: true } },
+      { new: true }
+    );
+    if (!doc) return errorResponse(res, 404, "Notification not found");
+    return successResponse(res, 200, "Notification marked as read", doc);
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const markAllNotificationsAsRead = async (req, res) => {
+  try {
+    await Notification.updateMany(
+      { user: req.user?._id, isRead: false },
+      { $set: { isRead: true } }
+    );
+    return successResponse(res, 200, "All notifications marked as read");
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const sendNotificationToUser = async (req, res) => {
   try {
     const userId = String(req.body?.userId || "").trim();
