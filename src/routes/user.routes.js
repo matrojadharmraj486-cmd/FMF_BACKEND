@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
 
-import { getMyProfile, updateProfile } from "../controller/updateProfile.js";
+import { getMyProfile, updateProfile, deleteMyAccount } from "../controller/updateProfile.js";
 
 const router = express.Router();
 
@@ -17,6 +17,12 @@ router.get(
   "/profile",
   authenticate,
   getMyProfile
+);
+
+router.delete(
+  "/profile",
+  authenticate,
+  deleteMyAccount
 );
 
 export default router;

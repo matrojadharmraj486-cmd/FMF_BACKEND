@@ -86,3 +86,23 @@ export const getMyProfile = async (req, res) => {
     return errorResponse(res, 500, err.message);
   }
 };
+
+export const deleteMyAccount = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return errorResponse(res, 404, "User not found");
+
+    user.isDeleted = true;
+    user.isActive = false;
+    // Append timestamp to email/mobile to free them up for new registration if needed
+    const timestamp = Date.now();
+    if (user.email) user.email = `deleted_${timestamp}_${user.email}`;
+    if (user.mobileNumber) user.mobileNumber = `deleted_${timestamp}_${user.mobileNumber}`;
+    
+    await user.save();
+
+    return successResponse(res, 200, "Account deleted successfully");
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
+  }
+};
