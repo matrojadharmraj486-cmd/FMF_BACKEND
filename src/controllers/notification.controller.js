@@ -283,7 +283,8 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
     const notFoundUserIds = sendToAll
       ? []
       : requestedUserIds.filter(userId => !foundUserIds.has(userId));
-    let targetUserIds = users.map(user => String(user._id));
+    const targetUserIds = users.map(user => String(user._id));
+    const totalTargets = sendToAll ? targetUserIds.length : requestedUserIds.length;
 
     if (!targetUserIds.length) {
       const failedDetails = notFoundUserIds.map(userId => ({
@@ -297,7 +298,9 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
         deliveryStatus: failedDetails.length ? "failed" : "no_targets",
         sent: 0,
         failed: failedDetails.length,
-        totalTargets: sendToAll ? 0 : requestedUserIds.length,
+        totalTargets,
+        usersWithActiveTokens: 0,
+        usersWithoutActiveTokens: 0,
         failedUserIds: failedDetails.map(item => item.userId),
         failedDetails
       });
@@ -310,8 +313,7 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
     }).lean();
 
     const tokenUserIds = new Set(tokenDocs.map(tokenDoc => String(tokenDoc.user)));
-    const usersWithoutTokens = sendToAll ? [] : targetUserIds.filter(userId => !tokenUserIds.has(userId));
-    if (sendToAll) targetUserIds = Array.from(tokenUserIds);
+    const usersWithoutTokens = targetUserIds.filter(userId => !tokenUserIds.has(userId));
 
     if (!tokenDocs.length) {
       const failedDetails = [
@@ -332,7 +334,9 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
         deliveryStatus: failedDetails.length ? "failed" : "no_targets",
         sent: 0,
         failed: failedDetails.length,
-        totalTargets: sendToAll ? 0 : requestedUserIds.length,
+        totalTargets,
+        usersWithActiveTokens: 0,
+        usersWithoutActiveTokens: usersWithoutTokens.length,
         failedUserIds: failedDetails.map(item => item.userId),
         failedDetails
       });
@@ -347,7 +351,9 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
         message: "Firebase is not configured on the server",
         sent: 0,
         failed: targetUserIds.length,
-        totalTargets: targetUserIds.length,
+        totalTargets,
+        usersWithActiveTokens: tokenUserIds.size,
+        usersWithoutActiveTokens: usersWithoutTokens.length,
         failedUserIds: targetUserIds
       });
     }
@@ -412,7 +418,9 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
       deliveryStatus,
       sent: sentUserIds.length,
       failed: failedUserIds.length,
-      totalTargets: sendToAll ? targetUserIds.length : requestedUserIds.length,
+      totalTargets,
+      usersWithActiveTokens: tokenUserIds.size,
+      usersWithoutActiveTokens: usersWithoutTokens.length,
       failedUserIds,
       failedDetails
     });

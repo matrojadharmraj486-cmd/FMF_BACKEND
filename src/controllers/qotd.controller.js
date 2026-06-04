@@ -36,14 +36,11 @@ export const upsertQotd = async (req, res) => {
       payload.answerImage = url;
     }
 
-    await Qotd.updateMany({ isActive: true }, { $set: { isActive: false } });
-    const existingToday = await Qotd.findOne({ date: today });
-    let doc;
-    if (existingToday) {
-      doc = await Qotd.findByIdAndUpdate(existingToday._id, payload, { new: true });
-    } else {
-      doc = await Qotd.create(payload);
-    }
+    const existing = await Qotd.findOne({}).sort({ isActive: -1, updatedAt: -1, createdAt: -1 });
+    const doc = existing
+      ? await Qotd.findByIdAndUpdate(existing._id, payload, { new: true })
+      : await Qotd.create(payload);
+    await Qotd.deleteMany({ _id: { $ne: doc._id } });
     return res.status(201).json({
       status: 201,
       message: "QOTD set",
@@ -111,6 +108,7 @@ export const updateQotd = async (req, res) => {
       doc.answerText = undefined;
     }
     await doc.save();
+    await Qotd.deleteMany({ _id: { $ne: doc._id } });
     return res.status(200).json({
       status: 200,
       message: "QOTD updated",

@@ -111,6 +111,23 @@ const buildFallbackQuestionIdMap = async (docs) => {
   return map;
 };
 
+const getQuestionRemovalIds = async (questionId) => {
+  const raw = String(questionId || "").trim();
+  const ids = new Set(raw ? [raw] : []);
+  if (!raw) return ids;
+
+  const filters = [{ id: raw }];
+  if (mongoose.Types.ObjectId.isValid(raw)) filters.push({ _id: raw });
+
+  const questionDoc = await StructuredQuestion.findOne({ $or: filters }, { _id: 1, id: 1 }).lean();
+  if (questionDoc) {
+    ids.add(String(questionDoc._id));
+    if (questionDoc.id) ids.add(String(questionDoc.id));
+  }
+
+  return ids;
+};
+
 /* Create Collection */
 export const createCollection = async (req, res) => {
 
@@ -306,9 +323,30 @@ export const removeQuestion = async (req, res) => {
   if (bookmark.user.toString() !== req.user._id.toString())
     return errorResponse(res, 403, "Unauthorized");
 
-  bookmark.questions = bookmark.questions.filter(
-    q => q.id !== questionId
-  );
+  const removalIds = await getQuestionRemovalIds(questionId);
+  const beforeCount = bookmark.questions.length;
+
+  bookmark.questions = bookmark.questions.filter(q => {
+    const storedIds = [
+      q.id,
+      q._id
+    ].map(value => String(value || "")).filter(Boolean);
+
+    return !storedIds.some(id => removalIds.has(id));
+  });
+
+  const removedCount = beforeCount - bookmark.questions.length;
+
+  if (removedCount === 0) {
+    logger.warn("Bookmark remove requested but no matching question was found", {
+      collectionId,
+      userId: req.user._id,
+      questionId,
+      removalIds: Array.from(removalIds),
+      totalQuestions: bookmark.questions.length
+    });
+    return errorResponse(res, 404, "Question not found in collection");
+  }
 
   await bookmark.save();
 
@@ -316,10 +354,16 @@ export const removeQuestion = async (req, res) => {
     collectionId,
     userId: req.user._id,
     questionId,
+    removedCount,
     totalQuestions: bookmark.questions.length
   });
 
-  return successResponse(res, 200, "Removed");
+  return successResponse(res, 200, "Removed", {
+    collectionId,
+    questionId,
+    removedCount,
+    totalQuestions: bookmark.questions.length
+  });
 };
 
 export const updateBookmarkedQuestion = async (req, res) => {

@@ -416,6 +416,12 @@ export const createStructuredQuestion = async (req, res) => {
     }
 
     const created = await StructuredQuestion.create(payload);
+    if (created.QOTD) {
+      await StructuredQuestion.updateMany(
+        { QOTD: true, _id: { $ne: created._id } },
+        { $set: { QOTD: false } }
+      );
+    }
     const obj = created.toObject();
     obj.id = obj.id || String(obj._id);
     const numericId = getNumericQuestionId(obj.id);
@@ -885,7 +891,8 @@ export const searchStructuredQuestions = async (req, res) => {
 
 export const getStructuredQotdQuestions = async (req, res) => {
   try {
-    const docs = sortStructuredQuestions(await StructuredQuestion.find({ QOTD: true }));
+    const activeDoc = await StructuredQuestion.findOne({ QOTD: true }).sort({ updatedAt: -1, createdAt: -1 });
+    const docs = activeDoc ? [activeDoc] : [];
     const data = docs.map((d, index) => {
       const obj = d.toObject();
       obj.id = obj.id || String(obj._id);
@@ -990,6 +997,12 @@ export const updateStructuredQuestion = async (req, res) => {
         return errorResponse(res, 400, "QOTD must be boolean");
       }
       doc.QOTD = parsedQotd;
+      if (parsedQotd) {
+        await StructuredQuestion.updateMany(
+          { QOTD: true, _id: { $ne: doc._id } },
+          { $set: { QOTD: false } }
+        );
+      }
     }
 
     // Full structured edit (admin sending full sub_questions array)
@@ -1119,7 +1132,10 @@ export const setActiveStructuredQotd = async (req, res) => {
     const { id } = req.params;
     const exists = await StructuredQuestion.findById(id);
     if (!exists) return errorResponse(res, 404, "Question not found");
-    await StructuredQuestion.updateMany({ QOTD: true }, { $set: { QOTD: false } });
+    await StructuredQuestion.updateMany(
+      { QOTD: true, _id: { $ne: exists._id } },
+      { $set: { QOTD: false } }
+    );
     const doc = await StructuredQuestion.findByIdAndUpdate(id, { QOTD: true }, { new: true });
     return successResponse(res, 200, "QOTD set", doc);
   } catch (e) {
