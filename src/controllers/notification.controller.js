@@ -39,7 +39,7 @@ const sendTokenChunks = async ({ admin, tokenDocs, title, body, data }) => {
   tokenDocs.forEach(tokenDoc => {
     const userId = String(tokenDoc.user);
     if (!userResults.has(userId)) {
-      userResults.set(userId, { successCount: 0, failureCount: 0 });
+      userResults.set(userId, { successCount: 0, failureCount: 0, errors: [] });
     }
   });
 
@@ -54,12 +54,16 @@ const sendTokenChunks = async ({ admin, tokenDocs, title, body, data }) => {
       resp.responses.forEach((result, index) => {
         const tokenDoc = chunk[index];
         const userId = String(tokenDoc.user);
-        const userResult = userResults.get(userId) || { successCount: 0, failureCount: 0 };
+        const userResult = userResults.get(userId) || { successCount: 0, failureCount: 0, errors: [] };
         if (result.success) {
           userResult.successCount += 1;
         } else {
           userResult.failureCount += 1;
           const code = result.error?.code;
+          userResult.errors.push({
+            reason: code || "fcm_send_failed",
+            message: result.error?.message || "FCM send failed"
+          });
           if (isInvalidFcmTokenError(code)) invalidTokens.push(tokenDoc.token);
         }
         userResults.set(userId, userResult);
@@ -68,8 +72,12 @@ const sendTokenChunks = async ({ admin, tokenDocs, title, body, data }) => {
       logger.warn("FCM multicast chunk failed", { error: e.message });
       chunk.forEach(tokenDoc => {
         const userId = String(tokenDoc.user);
-        const userResult = userResults.get(userId) || { successCount: 0, failureCount: 0 };
+        const userResult = userResults.get(userId) || { successCount: 0, failureCount: 0, errors: [] };
         userResult.failureCount += 1;
+        userResult.errors.push({
+          reason: e.code || "fcm_chunk_failed",
+          message: e.message || "FCM chunk failed"
+        });
         userResults.set(userId, userResult);
       });
     }
@@ -271,15 +279,27 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
       ? { isDeleted: { $ne: true } }
       : { _id: { $in: requestedUserIds }, isDeleted: { $ne: true } };
     const users = await User.find(userFilter, { _id: 1 }).lean();
+    const foundUserIds = new Set(users.map(user => String(user._id)));
+    const notFoundUserIds = sendToAll
+      ? []
+      : requestedUserIds.filter(userId => !foundUserIds.has(userId));
     let targetUserIds = users.map(user => String(user._id));
 
     if (!targetUserIds.length) {
+      const failedDetails = notFoundUserIds.map(userId => ({
+        userId,
+        reason: "user_not_found",
+        message: "User does not exist or is deleted"
+      }));
       return res.status(200).json({
-        success: true,
+        success: failedDetails.length === 0,
+        processed: true,
+        deliveryStatus: failedDetails.length ? "failed" : "no_targets",
         sent: 0,
-        failed: sendToAll ? 0 : requestedUserIds.length,
+        failed: failedDetails.length,
         totalTargets: sendToAll ? 0 : requestedUserIds.length,
-        failedUserIds: sendToAll ? [] : requestedUserIds
+        failedUserIds: failedDetails.map(item => item.userId),
+        failedDetails
       });
     }
 
@@ -294,12 +314,27 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
     if (sendToAll) targetUserIds = Array.from(tokenUserIds);
 
     if (!tokenDocs.length) {
+      const failedDetails = [
+        ...notFoundUserIds.map(userId => ({
+          userId,
+          reason: "user_not_found",
+          message: "User does not exist or is deleted"
+        })),
+        ...usersWithoutTokens.map(userId => ({
+          userId,
+          reason: "no_active_tokens",
+          message: "User has not registered an active FCM token from the mobile app"
+        }))
+      ];
       return res.status(200).json({
-        success: true,
+        success: failedDetails.length === 0,
+        processed: true,
+        deliveryStatus: failedDetails.length ? "failed" : "no_targets",
         sent: 0,
-        failed: usersWithoutTokens.length,
-        totalTargets: targetUserIds.length,
-        failedUserIds: usersWithoutTokens
+        failed: failedDetails.length,
+        totalTargets: sendToAll ? 0 : requestedUserIds.length,
+        failedUserIds: failedDetails.map(item => item.userId),
+        failedDetails
       });
     }
 
@@ -322,16 +357,36 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
       : new Map();
 
     const sentUserIds = [];
-    const failedUserIds = [...usersWithoutTokens];
+    const failedDetails = [
+      ...notFoundUserIds.map(userId => ({
+        userId,
+        reason: "user_not_found",
+        message: "User does not exist or is deleted"
+      })),
+      ...usersWithoutTokens.map(userId => ({
+        userId,
+        reason: "no_active_tokens",
+        message: "User has not registered an active FCM token from the mobile app"
+      }))
+    ];
 
     for (const userId of tokenUserIds) {
       const result = userResults.get(userId);
       if (result?.successCount > 0) {
         sentUserIds.push(userId);
       } else {
-        failedUserIds.push(userId);
+        failedDetails.push({
+          userId,
+          reason: result?.errors?.[0]?.reason || "send_failed",
+          message: result?.errors?.[0]?.message || "Firebase rejected all active tokens for this user",
+          errors: result?.errors || []
+        });
       }
     }
+    const failedUserIds = failedDetails.map(item => item.userId);
+    const deliveryStatus = failedUserIds.length
+      ? (sentUserIds.length ? "partial_failed" : "failed")
+      : "sent";
 
     const notificationDocs = targetUserIds.map(userId => ({
       user: userId,
@@ -352,11 +407,14 @@ export const sendBulkNotificationsAdmin = async (req, res) => {
     });
 
     return res.status(200).json({
-      success: true,
+      success: failedUserIds.length === 0,
+      processed: true,
+      deliveryStatus,
       sent: sentUserIds.length,
       failed: failedUserIds.length,
-      totalTargets: targetUserIds.length,
-      failedUserIds
+      totalTargets: sendToAll ? targetUserIds.length : requestedUserIds.length,
+      failedUserIds,
+      failedDetails
     });
   } catch (e) {
     logger.error("Bulk notification send failed", { error: e.message, stack: e.stack });

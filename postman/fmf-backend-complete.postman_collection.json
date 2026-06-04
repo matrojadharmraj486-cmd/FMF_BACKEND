@@ -1,0 +1,4203 @@
+{
+  "info": {
+    "_postman_id": "6cbb41c6-bf77-4cce-9b57-4f43f5dd9630",
+    "name": "FMF Backend Complete API",
+    "description": "Complete Postman collection generated from the Express route structure. Base URL is set to the deployed Render backend. Use Login/Admin Login requests to populate userToken/adminToken, or paste tokens manually into collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/send-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "send-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"otp\": \"123456\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"user@example.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"password\": \"Test@1234\",\n  \"gender\": \"Male\",\n  \"age\": 30,\n  \"state\": \"Gujarat\",\n  \"district\": \"Ahmedabad\",\n  \"city\": \"Ahmedabad\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json?.data?.token;",
+                  "if (token) pm.collectionVariables.set(\"userToken\", token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"user@example.com\",\n  \"password\": \"Test@1234\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json?.data?.token;",
+                  "if (token) pm.collectionVariables.set(\"userToken\", token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Mobile After OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"9876543210\",\n  \"isVerified\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json?.data?.token;",
+                  "if (token) pm.collectionVariables.set(\"userToken\", token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewTest@1234\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mobile App - Public",
+      "item": [
+        {
+          "name": "Home",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "home"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Banners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/banners?bannerType=home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "banners"
+              ],
+              "query": [
+                {
+                  "key": "bannerType",
+                  "value": "home"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/faqs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "faqs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Testimonials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/testimonials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "testimonials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Question Of The Day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/question-of-the-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "question-of-the-day"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?year={{year}}&part={{part}}&paper={{paper}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "questions"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                },
+                {
+                  "key": "paper",
+                  "value": "{{paper}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Question Years",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/years",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "questions",
+                "years"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Question Parts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/parts?year={{year}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "questions",
+                "parts"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Question Papers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/papers?year={{year}}&part={{part}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "questions",
+                "papers"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/search?year={{year}}&part={{part}}&paper={{paper}}&search=diabetes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "questions",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                },
+                {
+                  "key": "paper",
+                  "value": "{{paper}}"
+                },
+                {
+                  "key": "search",
+                  "value": "diabetes"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "States",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/states",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "states"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Districts By State",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/districts/{{stateCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "districts",
+                "{{stateCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Opinion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"user@example.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"opinion\": \"The app is helpful.\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/opinions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "opinions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Opinions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/opinions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "opinions"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile - JSON/Base64 Photo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated User\",\n  \"gender\": \"Female\",\n  \"age\": 28,\n  \"state\": \"Gujarat\",\n  \"district\": \"Ahmedabad\",\n  \"city\": \"Ahmedabad\",\n  \"photoBase64\": \"\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Profile - Multipart Photo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "fullName",
+                  "value": "Updated User",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete My Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookmarks",
+      "item": [
+        {
+          "name": "Create Collection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Saved Questions\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Collections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get One Collection",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Collection Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/collection/{{collectionId}}/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "collection",
+                "{{collectionId}}",
+                "questions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"collectionId\": \"{{collectionId}}\",\n  \"questionId\": \"{{questionId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "add"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Question To Collection",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}",
+                "add"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Check Bookmark Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/check/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "check",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Bookmarked Question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newQuestionId\": \"{{newQuestionId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rename Collection - PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed Collection\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rename Collection - PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed Collection\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}/remove/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}",
+                "remove",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Collection",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookmark/{{collectionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bookmark",
+                "{{collectionId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Razorpay Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionId\": \"{{subscriptionId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "orders"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"razorpay_payment_id\": \"{{razorpayPaymentId}}\",\n  \"razorpay_signature\": \"{{razorpaySignature}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "verify"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Payment Failed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"{{razorpayOrderId}}\",\n  \"reason\": \"Payment cancelled\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/fail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "fail"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Razorpay Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment.captured\",\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {}\n    }\n  }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "webhook"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Support Tickets",
+      "item": [
+        {
+          "name": "Create Ticket - Multipart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "subject",
+                  "value": "Payment issue",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "payment",
+                  "type": "text"
+                },
+                {
+                  "key": "priority",
+                  "value": "medium",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "I need help with my payment.",
+                  "type": "text"
+                },
+                {
+                  "key": "attachment",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/support-tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "support-tickets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/support-tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "support-tickets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Ticket By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/support-tickets/{{ticketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "support-tickets",
+                "{{ticketId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coupons & Notifications",
+      "item": [
+        {
+          "name": "List Active Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "coupons"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validate Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME10\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "coupons",
+                "validate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{fcmToken}}\",\n  \"platform\": \"android\",\n  \"deviceId\": \"{{deviceId}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unregister FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{fcmToken}}\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unregister",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "unregister"
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Auth & Dashboard",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@1234\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const token = json?.data?.token;",
+                  "if (token) pm.collectionVariables.set(\"adminToken\", token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stats Timeseries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/stats/timeseries?granularity=monthly&months=6",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "monthly"
+                },
+                {
+                  "key": "months",
+                  "value": "6"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stats Legacy Mount",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "stats"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users?q=&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated User\",\n  \"isVerified\": true,\n  \"address\": {\n    \"state\": \"Gujarat\",\n    \"district\": \"Ahmedabad\",\n    \"city\": \"Ahmedabad\"\n  }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User Subscription",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isSubscribed\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}",
+                "subscription"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Delete Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{userId}}\"\n  ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/bulk-delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "bulk-delete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Structured Questions",
+      "item": [
+        {
+          "name": "List Structured Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured?year={{year}}&part={{part}}&paper={{paper}}&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                },
+                {
+                  "key": "paper",
+                  "value": "{{paper}}"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Years",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/years",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "years"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Parts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/parts?year={{year}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "parts"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Papers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/papers?year={{year}}&part={{part}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "papers"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Structured Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"part\": \"Part 1\",\n  \"paper\": \"Paper 1\",\n  \"question_text\": \"Sample question?\",\n  \"isDirect\": false,\n  \"sub_questions\": [\n    {\n      \"part\": \"a\",\n      \"text\": \"Explain briefly.\",\n      \"answerType\": \"text\",\n      \"answer\": \"Sample answer.\"\n    }\n  ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Structured Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_text\": \"Updated question text\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/{{structuredQuestionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "{{structuredQuestionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Structured Excel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "year",
+                  "value": "{{year}}",
+                  "type": "text"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}",
+                  "type": "text"
+                },
+                {
+                  "key": "paper",
+                  "value": "{{paper}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear QOTD Flags",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/qotd/clear",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "qotd",
+                "clear"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set Active Structured QOTD",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/qotd/active/{{structuredQuestionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "qotd",
+                "active",
+                "{{structuredQuestionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete By Year/Part/Paper",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured?year={{year}}&part={{part}}&paper={{paper}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "{{year}}"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}"
+                },
+                {
+                  "key": "paper",
+                  "value": "{{paper}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Delete Structured Questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groups\": [\n    {\n      \"year\": 2025,\n      \"part\": \"Part 1\",\n      \"paper\": \"Paper 1\"\n    }\n  ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/bulk-delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "bulk-delete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Structured Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/{{structuredQuestionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "{{structuredQuestionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Structured Sub Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"part\": \"a\",\n  \"text\": \"Updated sub-question\",\n  \"answerType\": \"text\",\n  \"answer\": \"Updated answer\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/{{structuredQuestionId}}/sub/{{subQuestionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "{{structuredQuestionId}}",
+                "sub",
+                "{{subQuestionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Structured Sub Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/{{structuredQuestionId}}/sub/{{subQuestionId}}/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "{{structuredQuestionId}}",
+                "sub",
+                "{{subQuestionId}}",
+                "image"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Structured Sub Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions-structured/{{structuredQuestionId}}/sub/{{subQuestionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions-structured",
+                "{{structuredQuestionId}}",
+                "sub",
+                "{{subQuestionId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Legacy Questions & QOTD",
+      "item": [
+        {
+          "name": "Create Legacy Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "year",
+                  "value": "{{year}}",
+                  "type": "text"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}",
+                  "type": "text"
+                },
+                {
+                  "key": "question",
+                  "value": "Sample question?",
+                  "type": "text"
+                },
+                {
+                  "key": "answerType",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "answerText",
+                  "value": "Sample answer",
+                  "type": "text"
+                },
+                {
+                  "key": "answerImage",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Legacy Question",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "question",
+                  "value": "Updated question?",
+                  "type": "text"
+                },
+                {
+                  "key": "answerType",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "answerText",
+                  "value": "Updated answer",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Legacy Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Legacy Questions Excel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "year",
+                  "value": "{{year}}",
+                  "type": "text"
+                },
+                {
+                  "key": "part",
+                  "value": "{{part}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/questions/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "questions",
+                "upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create/Replace QOTD",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "question",
+                  "value": "Question of the day?",
+                  "type": "text"
+                },
+                {
+                  "key": "answerType",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "answer",
+                  "value": "Answer text",
+                  "type": "text"
+                },
+                {
+                  "key": "answerImage",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/question-of-the-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "question-of-the-day"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update QOTD",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "question",
+                  "value": "Updated QOTD?",
+                  "type": "text"
+                },
+                {
+                  "key": "answerType",
+                  "value": "text",
+                  "type": "text"
+                },
+                {
+                  "key": "answer",
+                  "value": "Updated answer",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/question-of-the-day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "question-of-the-day"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Content",
+      "item": [
+        {
+          "name": "List Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banner",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "banner"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "bannerType",
+                  "value": "home",
+                  "type": "text"
+                },
+                {
+                  "key": "position",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "redirectionUrl",
+                  "value": "https://example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "banners"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Banner",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "bannerType",
+                  "value": "home",
+                  "type": "text"
+                },
+                {
+                  "key": "position",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banners/{{bannerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "banners",
+                "{{bannerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/banners/{{bannerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "banners",
+                "{{bannerId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List FAQs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/faqs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "faqs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I subscribe?\",\n  \"answer\": \"Choose a plan and complete payment.\",\n  \"order\": 1,\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/faqs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "faqs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update FAQ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Updated question?\",\n  \"answer\": \"Updated answer.\",\n  \"isActive\": true,\n  \"order\": 2\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/faqs/{{faqId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "faqs",
+                "{{faqId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete FAQ",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/faqs/{{faqId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "faqs",
+                "{{faqId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Testimonials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/testimonials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "testimonials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List App Testimonials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/app-testimonials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "app-testimonials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Testimonial",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Dr. Test",
+                  "type": "text"
+                },
+                {
+                  "key": "designation",
+                  "value": "Doctor",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Ahmedabad",
+                  "type": "text"
+                },
+                {
+                  "key": "review",
+                  "value": "Great app.",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/testimonials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "testimonials"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Testimonial",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Dr. Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "review",
+                  "value": "Updated review.",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/testimonials/{{testimonialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "testimonials",
+                "{{testimonialId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Testimonial",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/testimonials/{{testimonialId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "testimonials",
+                "{{testimonialId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Editor Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "value": "",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/editor-image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "editor-image"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Subscriptions, Coupons, Payments",
+      "item": [
+        {
+          "name": "List Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions?includeInactive=true&includeDeleted=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions"
+              ],
+              "query": [
+                {
+                  "key": "includeInactive",
+                  "value": "true"
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Plan\",\n  \"description\": \"Access for 30 days\",\n  \"price\": 499,\n  \"gstPercent\": 18,\n  \"durationDays\": 30,\n  \"currency\": \"INR\",\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Subscription",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Plan\",\n  \"price\": 599,\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions/{{subscriptionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions",
+                "{{subscriptionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Subscription Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions/{{subscriptionId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions",
+                "{{subscriptionId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/subscriptions/{{subscriptionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions",
+                "{{subscriptionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coupons"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME10\",\n  \"discountType\": \"percent\",\n  \"discountValue\": 10,\n  \"description\": \"10% off\",\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coupons"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coupons/{{couponId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coupons",
+                "{{couponId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Admin Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments?userId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?status=paid&page=1&limit=50&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "paid"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders",
+                "{{orderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Order Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}/invoice",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders",
+                "{{orderId}}",
+                "invoice"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Gateway Config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payment-gateway",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payment-gateway"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Payment Gateway Config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gateway\": \"razorpay\",\n  \"keyId\": \"{{razorpayKeyId}}\",\n  \"secret\": \"{{razorpaySecret}}\",\n  \"description\": \"Razorpay production\",\n  \"isActive\": true\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payment-gateway",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payment-gateway"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Support, Opinions, Notifications",
+      "item": [
+        {
+          "name": "List Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets?status=&category=&priority=&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support-tickets"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "priority",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Support Ticket",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support-tickets",
+                "{{ticketId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Support Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"adminNote\": \"Checking this issue.\"\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets/{{ticketId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support-tickets",
+                "{{ticketId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Delete Support Tickets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{ticketId}}\"\n  ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/support-tickets/bulk-delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support-tickets",
+                "bulk-delete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Opinions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/opinions?q=&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "opinions"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Opinion",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/opinions/{{opinionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "opinions",
+                "{{opinionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Delete Opinions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{opinionId}}\"\n  ]\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/opinions/bulk-delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "opinions",
+                "bulk-delete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Notification To User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"title\": \"Hello\",\n  \"body\": \"Test notification\",\n  \"data\": {\n    \"screen\": \"home\"\n  }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/notifications/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notifications",
+                "send"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send Bulk Notifications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sendToAll\": true,\n  \"userIds\": [],\n  \"title\": \"Hello everyone\",\n  \"body\": \"Bulk notification\",\n  \"data\": {\n    \"screen\": \"home\",\n    \"type\": \"general\",\n    \"id\": \"optional-related-id\"\n  }\n}\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/notifications/send-bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notifications",
+                "send-bulk"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://fmf-backend.onrender.com",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "year",
+      "value": "2025",
+      "type": "string"
+    },
+    {
+      "key": "part",
+      "value": "Part 1",
+      "type": "string"
+    },
+    {
+      "key": "paper",
+      "value": "Paper 1",
+      "type": "string"
+    },
+    {
+      "key": "stateCode",
+      "value": "GJ",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "questionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "structuredQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subQuestionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "collectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "couponId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bannerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "faqId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testimonialId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "opinionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpayOrderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpayPaymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpaySignature",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpayKeyId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpaySecret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fcmToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": "test-device-1",
+      "type": "string"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { postJson, getJson } from "./httpClient.js";
+import { logger } from "./logger.js";
 
 const buildAuthHeaders = () => {
   const header = process.env.BULK9_AUTH_HEADER;
@@ -31,9 +32,29 @@ export const sendBulk9Sms = async ({ to, message, otp }) => {
   params.set("flash", process.env.BULK9_FLASH || "0");
 
   const fullUrl = url.includes("?") ? `${url}&${params}` : `${url}?${params}`;
+  logger.info("Bulk9 SMS send starting", {
+    to,
+    route: process.env.BULK9_ROUTE || "dlt",
+    senderId: process.env.BULK9_SENDER_ID || null,
+    hasTemplateId: !!process.env.BULK9_TEMPLATE_ID,
+    hasEntityId: !!process.env.BULK9_ENTITY_ID,
+    hasMessageId: !!process.env.BULK9_MESSAGE_ID
+  });
+
   const response = await getJson(fullUrl);
+  logger.info("Bulk9 SMS send completed", {
+    to,
+    status: response.status,
+    ok: response.ok,
+    data: response.data
+  });
 
   if (response.ok && response.data && response.data.return === false) {
+    logger.error("Bulk9 SMS provider returned failure", {
+      to,
+      status: response.status,
+      data: response.data
+    });
     return { ...response, ok: false };
   }
 
@@ -53,5 +74,19 @@ export const sendBulk9Email = async ({ to, subject, message, otp }) => {
   };
 
   const headers = buildAuthHeaders();
-  return postJson(url, payload, headers);
+  logger.info("Bulk9 email send starting", {
+    to,
+    subject,
+    hasFrom: !!process.env.BULK9_FROM_EMAIL
+  });
+
+  const response = await postJson(url, payload, headers);
+  logger.info("Bulk9 email send completed", {
+    to,
+    status: response.status,
+    ok: response.ok,
+    data: response.data
+  });
+
+  return response;
 };

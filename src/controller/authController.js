@@ -1,6 +1,9 @@
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { sendBrevoEmail } from "../utils/email.js";
+import { buildWelcomeEmail } from "../utils/emailTemplates.js";
+import { logger } from "../utils/logger.js";
 
 export const register = async (req, res) => {
   const { email, mobileNumber } = req.body;
@@ -22,6 +25,29 @@ export const register = async (req, res) => {
   });
 
   const token = generateToken(user._id);
+
+  if (user.email) {
+    try {
+      const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
+      await sendBrevoEmail({
+        to: user.email,
+        subject: tpl.subject,
+        text: tpl.text,
+        html: tpl.html
+      });
+      logger.info("Welcome email sent", {
+        userId: user._id,
+        email: user.email
+      });
+    } catch (err) {
+      logger.error("Welcome email failed", {
+        userId: user._id,
+        email: user.email,
+        error: err.message,
+        stack: err.stack
+      });
+    }
+  }
 
   return successResponse(res, 201, "Registration successful", {
     user,

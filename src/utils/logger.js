@@ -4,12 +4,16 @@ import path from "path";
 const logDir = process.env.LOG_DIR
   ? path.resolve(process.env.LOG_DIR)
   : path.join(process.cwd(), "logs");
+const appLogFile = process.env.API_LOG_FILE
+  ? path.resolve(process.env.API_LOG_FILE)
+  : path.join(logDir, "api.log");
 const errorLogFile = process.env.API_ERROR_LOG_FILE
   ? path.resolve(process.env.API_ERROR_LOG_FILE)
   : path.join(logDir, "api-errors.log");
 
 const ensureLogDir = () => {
   try {
+    fs.mkdirSync(path.dirname(appLogFile), { recursive: true });
     fs.mkdirSync(path.dirname(errorLogFile), { recursive: true });
   } catch {
     // Logging must never break API responses.
@@ -31,9 +35,11 @@ const writeLog = (level, message, meta) => {
   const timestamp = new Date().toISOString();
   const line = `[${timestamp}] [${level}] ${message}${formatMeta(meta)}`;
 
+  ensureLogDir();
+  fs.appendFile(appLogFile, `${line}\n`, () => {});
+
   if (level === "ERROR" || level === "WARN") {
     console.error(line);
-    ensureLogDir();
     fs.appendFile(errorLogFile, `${line}\n`, () => {});
     return;
   }

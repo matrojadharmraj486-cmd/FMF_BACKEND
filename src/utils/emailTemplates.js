@@ -80,6 +80,33 @@ Family Medicine Flashback`;
   return { subject, text, html };
 };
 
+export const buildWelcomeEmail = ({ userName } = {}) => {
+  const name = userName ? String(userName).trim() : "there";
+  const subject = "Welcome to FMF";
+  const text = `Hi ${name},
+
+Welcome to FMF - Family Medicine Flashback.
+
+Your account has been created successfully. You can now log in and start using the app.
+
+Warm regards,
+Team FMF
+Family Medicine Flashback`;
+
+  const html = wrapHtml({
+    title: subject,
+    contentHtml: `
+      <div style="font-size:14px;color:#111827;line-height:1.7;">
+        <div>Hi <b>${escapeHtml(name)}</b>,</div>
+        <p style="margin:12px 0 0 0;">Welcome to <b>FMF - Family Medicine Flashback</b>.</p>
+        <p style="margin:12px 0 0 0;">Your account has been created successfully. You can now log in and start using the app.</p>
+      </div>
+    `
+  });
+
+  return { subject, text, html };
+};
+
 export const buildSupportTicketCreatedEmail = ({ userName, ticketNumber, subject: ticketSubject, category, priority } = {}) => {
   const name = userName ? String(userName).trim() : "there";
   const subject = `Support Ticket Created: #${ticketNumber}`;
@@ -251,4 +278,3 @@ Family Medicine Flashback`;
   });
   return { subject, text, html };
 };
-
