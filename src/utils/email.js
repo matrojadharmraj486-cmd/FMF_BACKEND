@@ -25,7 +25,9 @@ const createSmtpTransport = () => {
 const sendSmtpEmail = async ({ to, subject, text, html }) => {
   const transport = createSmtpTransport();
   if (!transport) {
-    throw new Error("Email provider is not configured. Set BREVO_API_KEY or EMAIL_USER/EMAIL_PASS");
+    const errMsg = "Email provider is not configured. Set BREVO_API_KEY or EMAIL_USER/EMAIL_PASS";
+    logger.error("sendSmtpEmail failed: no transport", { to, subject });
+    throw new Error(errMsg);
   }
 
   const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
@@ -38,22 +40,32 @@ const sendSmtpEmail = async ({ to, subject, text, html }) => {
     subject
   });
 
-  const info = await transport.sendMail({
-    from: `"${fromName}" <${fromEmail}>`,
-    to,
-    subject,
-    text,
-    html
-  });
+  try {
+    const info = await transport.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      text,
+      html
+    });
 
-  logger.info("SMTP email send completed", {
-    to,
-    messageId: info.messageId,
-    accepted: info.accepted,
-    rejected: info.rejected
-  });
+    logger.info("SMTP email send completed", {
+      to,
+      messageId: info.messageId,
+      accepted: info.accepted,
+      rejected: info.rejected
+    });
 
-  return info;
+    return info;
+  } catch (err) {
+    logger.error("SMTP email send failed", {
+      to,
+      subject,
+      error: err.message,
+      stack: err.stack
+    });
+    throw err;
+  }
 };
 
 export const sendBrevoEmail = async ({ to, subject, text, html }) => {
@@ -63,7 +75,9 @@ export const sendBrevoEmail = async ({ to, subject, text, html }) => {
   const apiUrl = process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email";
 
   if (!apiKey) {
-    logger.warn("BREVO_API_KEY missing, using SMTP email fallback if configured", {
+    logger.warn("BREVO_API_KEY missing, falling back to SMTP email", {
+      to,
+      subject,
       hasEmailUser: !!process.env.EMAIL_USER,
       hasEmailPass: !!process.env.EMAIL_PASS
     });
@@ -89,29 +103,65 @@ export const sendBrevoEmail = async ({ to, subject, text, html }) => {
     apiUrl
   });
 
-  const response = await postJson(apiUrl, payload, {
-    "api-key": apiKey,
-    accept: "application/json"
-  });
-
-  logger.info("Brevo email send completed", {
-    to,
-    status: response.status,
-    ok: response.ok,
-    data: response.data
-  });
-
-  if (!response.ok) {
-    const details = typeof response.data === "object"
-      ? JSON.stringify(response.data)
-      : String(response.data);
-    logger.error("Brevo email failure details", {
-      status: response.status,
-      details,
-      payload: { ...payload, htmlContent: payload.htmlContent ? "(truncated)" : undefined }
+  try {
+    const response = await postJson(apiUrl, payload, {
+      "api-key": apiKey,
+      accept: "application/json"
     });
-    throw new Error(`Brevo email failed with status ${response.status}: ${details}`);
-  }
 
-  return response.data;
+    logger.info("Brevo email send completed", {
+      to,
+      status: response.status,
+      ok: response.ok,
+      data: response.data
+    });
+
+    if (!response.ok) {
+      const details = typeof response.data === "object"
+        ? JSON.stringify(response.data)
+        : String(response.data);
+      logger.error("Brevo email failure details", {
+        to,
+        subject,
+        status: response.status,
+        details,
+        payload: { ...payload, htmlContent: payload.htmlContent ? "(truncated)" : undefined }
+      });
+      throw new Error(`Brevo email failed with status ${response.status}: ${details}`);
+    }
+
+    return response.data;
+  } catch (err) {
+    logger.error("Brevo email send failed", {
+      to,
+      subject,
+      error: err.message,
+      stack: err.stack
+    });
+    throw err;
+  }
+};
+
+export const sendEmail = async ({ to, subject, text, html }) => {
+  logger.info("sendEmail called", {
+    to,
+    subject,
+    hasText: !!text,
+    hasHtml: !!html
+  });
+
+  try {
+    // First try Brevo, which will fall back to SMTP if Brevo isn't configured
+    const result = await sendBrevoEmail({ to, subject, text, html });
+    logger.info("sendEmail completed successfully", { to, subject });
+    return result;
+  } catch (err) {
+    logger.error("sendEmail failed", {
+      to,
+      subject,
+      error: err.message,
+      stack: err.stack
+    });
+    throw err;
+  }
 };
