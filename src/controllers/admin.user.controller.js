@@ -6,6 +6,17 @@ const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value |
 const isValidMobile = (value) => /^\d{10}$/.test(String(value || "").trim());
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
 const ALLOWED_LIMITS = new Set([10, 20, 50, 100]);
+const anonymizeDeletedContact = (user) => {
+  const suffix = `${Date.now()}_${user._id}`;
+  const update = { isDeleted: true, isActive: false };
+  if (user.email && !String(user.email).startsWith("deleted_")) {
+    update.email = `deleted_${suffix}_${user.email}`;
+  }
+  if (user.mobileNumber && !String(user.mobileNumber).startsWith("deleted_")) {
+    update.mobileNumber = `deleted_${suffix}_${user.mobileNumber}`;
+  }
+  return update;
+};
 const parsePositiveInt = (value) => {
   const n = Number(String(value ?? "").trim());
   if (!Number.isFinite(n)) return undefined;
@@ -213,13 +224,15 @@ export const deleteUserAdmin = async (req, res) => {
       return errorResponse(res, 400, "You cannot delete your own admin account");
     }
 
+    const existing = await User.findById(id).select("email mobileNumber");
+    if (!existing) return errorResponse(res, 404, "User not found");
+
     const user = await User.findByIdAndUpdate(
       id,
-      { isDeleted: true, isActive: false },
+      anonymizeDeletedContact(existing),
       { new: true }
     ).select("fullName email mobileNumber isDeleted isActive updatedAt");
 
-    if (!user) return errorResponse(res, 404, "User not found");
     return successResponse(res, 200, "User deleted", user);
   } catch (e) {
     return errorResponse(res, 500, e.message);
@@ -239,16 +252,15 @@ export const bulkDeleteUsersAdmin = async (req, res) => {
     const targetIds = uniqueIds.filter((x) => x !== selfId);
     if (targetIds.length === 0) return errorResponse(res, 400, "No valid user ids to delete");
 
-    const existing = await User.find({ _id: { $in: targetIds } }, { _id: 1 });
+    const existing = await User.find({ _id: { $in: targetIds } }, { _id: 1, email: 1, mobileNumber: 1 });
     const existingIds = existing.map((u) => String(u._id));
     if (existingIds.length === 0) return successResponse(res, 200, "Users deleted", { deletedCount: 0, deletedIds: [] });
 
-    const result = await User.updateMany(
-      { _id: { $in: existingIds } },
-      { $set: { isDeleted: true, isActive: false } }
+    const result = await Promise.all(
+      existing.map((user) => User.updateOne({ _id: user._id }, { $set: anonymizeDeletedContact(user) }))
     );
 
-    const deletedCount = Number(result?.modifiedCount ?? result?.nModified ?? 0);
+    const deletedCount = result.reduce((sum, item) => sum + Number(item?.modifiedCount ?? item?.nModified ?? 0), 0);
     return successResponse(res, 200, "Users deleted", { deletedCount, deletedIds: existingIds });
   } catch (e) {
     return errorResponse(res, 500, e.message);

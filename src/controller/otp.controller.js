@@ -9,10 +9,15 @@ import { logger } from "../utils/logger.js";
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
 const isMobile = (value) => /^\d{10}$/.test(value || "");
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const normalizeIdentifier = (value) => {
   const raw = String(value || "").trim();
   return isEmail(raw) ? raw.toLowerCase() : raw;
 };
+const activeUserFilter = { isDeleted: { $ne: true }, isActive: { $ne: false } };
+const emailMatch = (email) => ({
+  email: { $regex: `^${escapeRegex(email)}$`, $options: "i" }
+});
 
 export const sendOtp = async (req, res) => {
   const { email, mobileNumber } = req.body;
@@ -37,7 +42,8 @@ export const sendOtp = async (req, res) => {
     return errorResponse(res, 400, "Invalid mobile number");
 
   const user = await User.findOne({
-    $or: [{ email: identifier }, { mobileNumber: identifier }]
+    ...activeUserFilter,
+    $or: [emailMatch(identifier), { mobileNumber: identifier }]
   });
 
   logger.info("sendOtp user lookup complete", {
@@ -166,7 +172,8 @@ export const verifyOtp = async (req, res) => {
   if (otpDoc) await Otp.deleteOne({ _id: otpDoc._id });
 
   const user = await User.findOne({
-    $or: [{ email: identifier }, { mobileNumber: identifier }]
+    ...activeUserFilter,
+    $or: [emailMatch(identifier), { mobileNumber: identifier }]
   });
 
   return successResponse(res, 200, "OTP verified successfully", {

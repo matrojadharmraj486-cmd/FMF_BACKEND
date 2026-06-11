@@ -1,5 +1,6 @@
 import Payment, { getNextOrderNumber } from "../models/Payment.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import mongoose from "mongoose";
 
 const toNumber = (value) => {
   const n = Number(value);
@@ -50,6 +51,16 @@ const formatOrder = (doc, req) => {
   const obj = doc?.toObject ? doc.toObject() : { ...doc };
   const amountPaise = Number(obj.amount);
   const totalAmount = Number.isFinite(amountPaise) ? amountPaise / 100 : obj.amount;
+  const subscriptionPrice = Number(obj.subscription?.totalPrice ?? obj.subscription?.price);
+  const originalAmount = Number.isFinite(Number(obj.originalAmount))
+    ? Number(obj.originalAmount)
+    : Number.isFinite(subscriptionPrice)
+      ? subscriptionPrice
+      : totalAmount;
+  const discountAmount = Number.isFinite(Number(obj.discountAmount)) ? Number(obj.discountAmount) : 0;
+  const discountedAmount = Number.isFinite(Number(obj.discountedAmount))
+    ? Number(obj.discountedAmount)
+    : Math.max(0, Number(originalAmount || 0) - discountAmount);
   const orderDate = obj.createdAt;
   const paymentStatus = normalizePaymentStatus(obj.status);
   const orderStatus = normalizeOrderStatus(obj.status);
@@ -72,11 +83,30 @@ const formatOrder = (doc, req) => {
     gatewayOrderId: obj.razorpayOrderId,
     orderNumber: obj.orderNumber,
     orderDate,
+    originalAmount,
+    originalPrice: originalAmount,
+    baseAmount: originalAmount,
+    subtotal: originalAmount,
+    planAmount: originalAmount,
+    couponCode: obj.couponCode || obj.couponId?.code || null,
+    appliedCouponCode: obj.couponCode || obj.couponId?.code || null,
+    couponId: obj.couponId?._id || obj.couponId || null,
+    coupon: obj.couponId && typeof obj.couponId === "object" ? obj.couponId : undefined,
+    discountType: obj.discountType || obj.couponId?.discountType || null,
+    discountValue: Number.isFinite(Number(obj.discountValue)) ? Number(obj.discountValue) : 0,
+    discountAmount,
+    couponDiscountAmount: discountAmount,
+    discount: discountAmount,
+    discountedAmount,
+    discountedPrice: discountedAmount,
+    finalAmount: discountedAmount,
+    payableAmount: discountedAmount,
+    paidAmount: totalAmount,
     paymentStatus,
     orderStatus,
     invoiceUrl,
     downloadInvoiceUrl,
-    totalAmount,
+    totalAmount: discountedAmount,
     amountPaise: Number.isFinite(amountPaise) ? amountPaise : obj.amount,
     amountInr: Number.isFinite(amountPaise) ? amountPaise / 100 : undefined
   };
@@ -120,6 +150,7 @@ export const listOrdersAdmin = async (req, res) => {
     const [items, total] = await Promise.all([
       Payment.find(filter)
         .populate("subscription")
+        .populate("couponId")
         .populate("user", "fullName email mobileNumber")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -145,8 +176,10 @@ export const listOrdersAdmin = async (req, res) => {
 export const getOrderAdminById = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid order id");
     const doc = await Payment.findById(id)
       .populate("subscription")
+      .populate("couponId")
       .populate("user", "fullName email mobileNumber");
     if (!doc) return errorResponse(res, 404, "Order not found");
     const numberedDoc = await ensureOrderNumber(doc);
@@ -156,11 +189,54 @@ export const getOrderAdminById = async (req, res) => {
   }
 };
 
+export const deleteOrderAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid order id");
+
+    const doc = await Payment.findByIdAndDelete(id);
+    if (!doc) return errorResponse(res, 404, "Order not found");
+
+    return res.status(200).json({
+      success: true,
+      message: "Order deleted",
+      deleted: 1
+    });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
+export const bulkDeleteOrdersAdmin = async (req, res) => {
+  try {
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return errorResponse(res, 400, "ids must be a non-empty array");
+    }
+
+    const normalizedIds = ids.map((id) => String(id || "").trim());
+    if (normalizedIds.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
+      return errorResponse(res, 400, "ids contains invalid ObjectIds");
+    }
+
+    const result = await Payment.deleteMany({ _id: { $in: normalizedIds } });
+    return res.status(200).json({
+      success: true,
+      message: "Orders deleted",
+      deleted: Number(result?.deletedCount || 0)
+    });
+  } catch (e) {
+    return errorResponse(res, 500, e.message);
+  }
+};
+
 export const downloadOrderInvoiceAdmin = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return errorResponse(res, 400, "Invalid order id");
     const doc = await Payment.findById(id)
       .populate("subscription")
+      .populate("couponId")
       .populate("user", "fullName email mobileNumber");
     if (!doc) return errorResponse(res, 404, "Order not found");
 
@@ -174,7 +250,10 @@ export const downloadOrderInvoiceAdmin = async (req, res) => {
       `Email: ${order.user?.email || ""}`,
       `Mobile: ${order.user?.mobileNumber || ""}`,
       `Subscription: ${order.subscription?.name || ""}`,
-      `Total Amount: ${order.totalAmount} ${order.currency || "INR"}`,
+      `Original Amount: ${order.originalAmount} ${order.currency || "INR"}`,
+      `Coupon Code: ${order.couponCode || "N/A"}`,
+      `Discount Amount: ${order.discountAmount} ${order.currency || "INR"}`,
+      `Total Amount: ${order.discountedAmount} ${order.currency || "INR"}`,
       `Payment Status: ${order.paymentStatus}`,
       `Order Status: ${order.orderStatus}`
     ].join("\n");

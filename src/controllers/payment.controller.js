@@ -1,7 +1,9 @@
 import crypto from "crypto";
+import mongoose from "mongoose";
 import Payment from "../models/Payment.js";
 import Subscription from "../models/Subscription.js";
 import User from "../models/User.js";
+import Coupon from "../models/Coupon.js";
 import { getRazorpayClient } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
@@ -9,9 +11,39 @@ import { sendBrevoEmail } from "../utils/email.js";
 import { buildSubscriptionActivatedEmail } from "../utils/emailTemplates.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
+const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
 const formatPrice = (value) => {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(2) : value;
+};
+
+const calculateCouponDiscount = (originalAmount, coupon) => {
+  if (!coupon) {
+    return {
+      couponCode: null,
+      couponId: null,
+      discountType: null,
+      discountValue: 0,
+      discountAmount: 0,
+      discountedAmount: originalAmount
+    };
+  }
+
+  const discountValue = Number(coupon.discountValue || 0);
+  const rawDiscount = coupon.discountType === "percentage"
+    ? originalAmount * discountValue / 100
+    : discountValue;
+  const discountAmount = Math.min(originalAmount, Math.max(0, roundMoney(rawDiscount)));
+  const discountedAmount = Math.max(0, roundMoney(originalAmount - discountAmount));
+
+  return {
+    couponCode: coupon.code,
+    couponId: coupon._id,
+    discountType: coupon.discountType,
+    discountValue,
+    discountAmount,
+    discountedAmount
+  };
 };
 
 const calcSubscriptionTotals = (subscription) => {
@@ -66,6 +98,11 @@ export const createOrder = async (req, res) => {
       return errorResponse(res, 503, "Razorpay is not configured");
     }
     const { subscriptionId } = req.body || {};
+    const requestedCouponCode = String(req.body?.couponCode || req.body?.appliedCouponCode || "").trim().toUpperCase();
+    const requestedCouponId = String(req.body?.couponId || "").trim();
+    if (requestedCouponId && !mongoose.Types.ObjectId.isValid(requestedCouponId)) {
+      return errorResponse(res, 400, "Invalid coupon id");
+    }
     if (!subscriptionId) return errorResponse(res, 400, "subscriptionId is required");
 
     if (req.user?.subscription?.status === "active" && req.user?.subscription?.endDate) {
@@ -80,8 +117,19 @@ export const createOrder = async (req, res) => {
       return errorResponse(res, 404, "Subscription not available");
 
     const totals = calcSubscriptionTotals(subscription);
-    const totalInr = totals?.total ?? Number(subscription.price);
-    const amount = toPaise(totalInr);
+    const originalAmount = roundMoney(totals?.total ?? Number(subscription.price));
+    let coupon = null;
+    if (requestedCouponCode || requestedCouponId) {
+      const couponFilter = {
+        isActive: true,
+        ...(requestedCouponId ? { _id: requestedCouponId } : { code: requestedCouponCode })
+      };
+      coupon = await Coupon.findOne(couponFilter);
+      if (!coupon) return errorResponse(res, 404, "Invalid or inactive coupon code");
+    }
+
+    const discount = calculateCouponDiscount(originalAmount, coupon);
+    const amount = toPaise(discount.discountedAmount);
     if (!amount || amount <= 0) return errorResponse(res, 400, "Invalid subscription amount");
 
     const shortSubId = String(subscription._id || "").replace(/[^a-zA-Z0-9]/g, "").slice(-10);
@@ -93,7 +141,11 @@ export const createOrder = async (req, res) => {
       payment_capture: 1,
       notes: {
         userId: req.user?._id?.toString(),
-        subscriptionId: subscription._id.toString()
+        subscriptionId: subscription._id.toString(),
+        couponCode: discount.couponCode || undefined,
+        originalAmount,
+        discountAmount: discount.discountAmount,
+        discountedAmount: discount.discountedAmount
       }
     });
 
@@ -101,6 +153,13 @@ export const createOrder = async (req, res) => {
       user: req.user?._id,
       subscription: subscription._id,
       amount,
+      originalAmount,
+      couponCode: discount.couponCode,
+      couponId: discount.couponId,
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      discountAmount: discount.discountAmount,
+      discountedAmount: discount.discountedAmount,
       currency: order.currency || subscription.currency || "INR",
       razorpayOrderId: order.id,
       receipt,
@@ -111,6 +170,13 @@ export const createOrder = async (req, res) => {
       orderId: order.id,
       orderNumber: payment.orderNumber,
       amount: order.amount,
+      originalAmount,
+      couponCode: discount.couponCode,
+      couponId: discount.couponId,
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      discountAmount: discount.discountAmount,
+      discountedAmount: discount.discountedAmount,
       currency: order.currency,
       keyId,
       subscription: {

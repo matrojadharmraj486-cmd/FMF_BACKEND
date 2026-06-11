@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { BANNER_TYPES, normalizeBannerType } from "../utils/bannerTypes.js";
 
 const isValidHttpUrl = (value) => {
   if (!value) return false;
@@ -16,7 +17,6 @@ const isValidRedirectionUrl = (value) => {
   return v.startsWith("/") || isValidHttpUrl(v);
 };
 
-export const BANNER_TYPES = ["type1", "type2", "type3", "type4", "type5"];
 export const BANNER_POSITIONS = [1, 2, 3, 4, 5];
 
 const bannerSchema = new mongoose.Schema({
@@ -31,9 +31,19 @@ const bannerSchema = new mongoose.Schema({
       message: "redirectionUrl must start with '/' or be a valid absolute URL"
     }
   },
-  bannerType: { type: String, required: true, trim: true, enum: BANNER_TYPES },
+  bannerType: {
+    type: String,
+    required: true,
+    trim: true,
+    enum: BANNER_TYPES,
+    set: normalizeBannerType
+  },
   position: { type: Number, required: true, enum: BANNER_POSITIONS },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
+
+bannerSchema.pre("validate", function () {
+  this.bannerType = normalizeBannerType(this.bannerType);
+});
 
 export default mongoose.model("Banner", bannerSchema);

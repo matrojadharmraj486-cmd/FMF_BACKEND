@@ -3,6 +3,12 @@ import { verifyToken } from "../utils/jwt.js";
 import { errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 
+const activeUserLookup = (userId) => ({
+  _id: userId,
+  isDeleted: { $ne: true },
+  isActive: { $ne: false }
+});
+
 export const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -16,7 +22,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.userId);
+    const user = await User.findOne(activeUserLookup(decoded.userId));
 
     if (!user) {
       logger.warn("Authentication failed: user not found for token", {
@@ -45,12 +51,10 @@ export const optionalAuthenticate = async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return next();
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.userId);
+    const user = await User.findOne(activeUserLookup(decoded.userId));
     if (user) req.user = user;
     return next();
   } catch (e) {
     return next();
   }
 };
-
-

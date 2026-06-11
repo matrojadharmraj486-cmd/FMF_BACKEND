@@ -7,11 +7,16 @@ import { sendBrevoEmail } from "../utils/email.js";
 import { buildOtpEmail } from "../utils/emailTemplates.js";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const forgotPassword = async (req, res) => {
   const email = normalizeEmail(req.body.email);
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({
+    email: { $regex: `^${escapeRegex(email)}$`, $options: "i" },
+    isDeleted: { $ne: true },
+    isActive: { $ne: false }
+  });
 
   if (!user)
     return errorResponse(res, 404, "User not found");

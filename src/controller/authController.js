@@ -5,103 +5,134 @@ import { sendBrevoEmail } from "../utils/email.js";
 import { buildWelcomeEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const normalizeMobileNumber = (value) => String(value || "").trim();
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const activeUserFilter = { isDeleted: { $ne: true }, isActive: { $ne: false } };
+
+const emailMatch = (email) => ({
+  email: { $regex: `^${escapeRegex(email)}$`, $options: "i" }
+});
+
 export const register = async (req, res) => {
-  const { email, mobileNumber } = req.body;
-
-  const existingUser = await User.findOne({
-    $or: [
-      { email },
-      { mobileNumber }
-    ]
-  });
-
-  if (existingUser) {
-    return errorResponse(res, 400, "User already exists with this email or mobile number");
-  }
-
-  const user = await User.create({
-    ...req.body,
-    isVerified: true
-  });
-
-  const token = generateToken(user._id);
-
-  if (user.email) {
-    try {
-      const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
-      await sendBrevoEmail({
-        to: user.email,
-        subject: tpl.subject,
-        text: tpl.text,
-        html: tpl.html
-      });
-      logger.info("Welcome email sent", {
-        userId: user._id,
-        email: user.email
-      });
-    } catch (err) {
-      logger.error("Welcome email failed", {
-        userId: user._id,
-        email: user.email,
-        error: err.message,
-        stack: err.stack
-      });
+  try {
+    const email = normalizeEmail(req.body.email);
+    const mobileNumber = normalizeMobileNumber(req.body.mobileNumber);
+    if (!email && !mobileNumber) {
+      return errorResponse(res, 400, "Email or mobile number is required");
     }
-  }
 
-  return successResponse(res, 201, "Registration successful", {
-    user,
-    token
-  });
+    const existingUser = await User.findOne({
+      ...activeUserFilter,
+      $or: [
+        ...(email ? [emailMatch(email)] : []),
+        ...(mobileNumber ? [{ mobileNumber }] : [])
+      ]
+    });
+
+    if (existingUser) {
+      return errorResponse(res, 400, "User already exists with this email or mobile number");
+    }
+
+    const user = await User.create({
+      ...req.body,
+      email,
+      mobileNumber,
+      isVerified: true,
+      isActive: true,
+      isDeleted: false
+    });
+
+    const token = generateToken(user._id);
+
+    if (user.email) {
+      try {
+        const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
+        await sendBrevoEmail({
+          to: user.email,
+          subject: tpl.subject,
+          text: tpl.text,
+          html: tpl.html
+        });
+        logger.info("Welcome email sent", {
+          userId: user._id,
+          email: user.email
+        });
+      } catch (err) {
+        logger.error("Welcome email failed", {
+          userId: user._id,
+          email: user.email,
+          error: err.message,
+          stack: err.stack
+        });
+      }
+    }
+
+    return successResponse(res, 201, "Registration successful", {
+      user,
+      token
+    });
+  } catch (err) {
+    if (err?.code === 11000) {
+      return errorResponse(res, 409, "Email or mobile number already exists, possibly on a deleted account. Please contact support to restore or clean the old account.");
+    }
+    return errorResponse(res, 500, err.message);
+  }
 };
 
-
 export const login = async (req, res) => {
-  const { identifier, password, isVerified } = req.body;
+  try {
+    const { password, isVerified } = req.body;
+    const rawIdentifier = String(req.body.identifier || "").trim();
+    if (!rawIdentifier) {
+      return errorResponse(res, 400, "identifier is required");
+    }
 
-  const user = await User.findOne({
-    $or: [
-      { email: identifier },
-      { mobileNumber: identifier }
-    ]
-  }).select("+password");
+    const isMobile = /^\d{10}$/.test(rawIdentifier);
+    const identifier = isMobile ? rawIdentifier : normalizeEmail(rawIdentifier);
 
-  if (!user)
-    return errorResponse(res, 404, "User not found");
+    const user = await User.findOne({
+      ...activeUserFilter,
+      $or: [
+        ...(identifier ? [emailMatch(identifier), { mobileNumber: identifier }] : [])
+      ]
+    }).select("+password");
 
-  const isMobile = /^\d{10}$/.test(identifier);
+    if (!user)
+      return errorResponse(res, 404, "User not found");
 
-  // 📱 MOBILE LOGIN (OTP verified)
-  if (isMobile) {
-    if (!isVerified)
-      return errorResponse(res, 400, "OTP verification required");
+    if (isMobile) {
+      if (!isVerified)
+        return errorResponse(res, 400, "OTP verification required");
+
+      user.lastLogin = new Date();
+      await user.save();
+
+      const token = generateToken(user._id);
+
+      return successResponse(res, 200, "Login successful (Mobile)", {
+        user,
+        token
+      });
+    }
+
+    if (!password)
+      return errorResponse(res, 400, "Password is required for email login");
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch)
+      return errorResponse(res, 400, "Invalid password");
 
     user.lastLogin = new Date();
     await user.save();
 
     const token = generateToken(user._id);
 
-    return successResponse(res, 200, "Login successful (Mobile)", {
+    return successResponse(res, 200, "Login successful (Email)", {
       user,
       token
     });
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
   }
-
-  // 📧 EMAIL LOGIN (Password required)
-  if (!password)
-    return errorResponse(res, 400, "Password is required for email login");
-
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch)
-    return errorResponse(res, 400, "Invalid password");
-
-  user.lastLogin = new Date();
-  await user.save();
-
-  const token = generateToken(user._id);
-
-  return successResponse(res, 200, "Login successful (Email)", {
-    user,
-    token
-  });
 };

@@ -1,7 +1,8 @@
 import fs from "fs";
-import Banner, { BANNER_TYPES, BANNER_POSITIONS } from "../models/Banner.js";
+import Banner, { BANNER_POSITIONS } from "../models/Banner.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { uploadImageFile } from "../utils/cloudinary.js";
+import { BANNER_TYPES, getBannerTypeAliases, normalizeBannerType } from "../utils/bannerTypes.js";
 
 const toAbsolute = (url, req) => {
   if (!url) return url;
@@ -28,9 +29,10 @@ const isValidRedirectionUrl = (value) => {
 };
 
 const parseBannerType = (value) => {
-  const bannerType = String(value || "").trim();
-  return BANNER_TYPES.includes(bannerType) ? bannerType : null;
+  return normalizeBannerType(value);
 };
+
+const bannerTypeError = `bannerType must be one of ${BANNER_TYPES.join(", ")}`;
 
 const parsePosition = (value) => {
   if (value === undefined || value === null || value === "") return null;
@@ -67,7 +69,7 @@ export const createBanner = async (req, res) => {
       redirectionUrl: req.body?.redirectionUrl
     });
     const bannerType = parseBannerType(req.body.bannerType);
-    if (!bannerType) return errorResponse(res, 400, "bannerType must be one of type1, type2, type3, type4, type5");
+    if (!bannerType) return errorResponse(res, 400, bannerTypeError);
 
     const position = parsePosition(req.body.position);
     if (!position) return errorResponse(res, 400, "position must be a number between 1 and 5");
@@ -119,9 +121,10 @@ export const createBanner = async (req, res) => {
 
 export const getBanners = async (req, res) => {
   try {
-    const bannerType = (req.query.bannerType || "").trim();
+    const bannerType = parseBannerType(req.query.bannerType);
     const filter = { isActive: true };
-    if (bannerType) filter.bannerType = bannerType;
+    if (req.query.bannerType && !bannerType) return errorResponse(res, 400, bannerTypeError);
+    if (bannerType) filter.bannerType = { $in: getBannerTypeAliases(bannerType) };
     const docs = await Banner.find(filter).sort({ position: 1, createdAt: -1 });
     const data = docs.map(d => ({
       ...d.toObject(),
@@ -142,7 +145,7 @@ export const updateBanner = async (req, res) => {
 
     if (Object.prototype.hasOwnProperty.call(req.body, "bannerType")) {
       const bannerType = parseBannerType(req.body.bannerType);
-      if (!bannerType) return errorResponse(res, 400, "bannerType must be one of type1, type2, type3, type4, type5");
+      if (!bannerType) return errorResponse(res, 400, bannerTypeError);
       doc.bannerType = bannerType;
     }
 
@@ -220,9 +223,10 @@ export const deleteBanner = async (req, res) => {
 
 export const getAllBannersAdmin = async (req, res) => {
   try {
-    const bannerType = (req.query.bannerType || "").trim();
+    const bannerType = parseBannerType(req.query.bannerType);
     const filter = {};
-    if (bannerType) filter.bannerType = bannerType;
+    if (req.query.bannerType && !bannerType) return errorResponse(res, 400, bannerTypeError);
+    if (bannerType) filter.bannerType = { $in: getBannerTypeAliases(bannerType) };
     const docs = await Banner.find(filter).sort({ position: 1, createdAt: -1 });
     const data = docs.map(d => ({
       ...d.toObject(),

@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { hashOtp } from "../utils/otp.js";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const resetPassword = async (req, res) => {
   const { otp, newPassword } = req.body;
@@ -24,7 +25,11 @@ export const resetPassword = async (req, res) => {
       return errorResponse(res, 400, "Invalid OTP");
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({
+    email: { $regex: `^${escapeRegex(email)}$`, $options: "i" },
+    isDeleted: { $ne: true },
+    isActive: { $ne: false }
+  });
   if (!user)
     return errorResponse(res, 404, "User not found");
 

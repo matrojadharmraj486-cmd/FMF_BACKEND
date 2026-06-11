@@ -3,6 +3,10 @@ import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { uploadImageData, uploadImageFile } from "../utils/cloudinary.js";
 
+const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+const normalizeMobileNumber = (value) => String(value || "").trim();
+const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const updateProfile = async (req, res) => {
 console.log("update profile API BODY", req?.body)
   try {
@@ -23,16 +27,28 @@ console.log("update profile API BODY", req?.body)
       city
     } = req.body || {};
 
-    if (email && email !== user.email) {
-      const exists = await User.findOne({ email, _id: { $ne: user._id } });
+    const normalizedEmail = email ? normalizeEmail(email) : "";
+    if (normalizedEmail && normalizedEmail !== normalizeEmail(user.email)) {
+      const exists = await User.findOne({
+        email: { $regex: `^${escapeRegex(normalizedEmail)}$`, $options: "i" },
+        _id: { $ne: user._id },
+        isDeleted: { $ne: true },
+        isActive: { $ne: false }
+      });
       if (exists) return errorResponse(res, 400, "Email already in use");
-      user.email = email;
+      user.email = normalizedEmail;
     }
 
-    if (mobileNumber && mobileNumber !== user.mobileNumber) {
-      const exists = await User.findOne({ mobileNumber, _id: { $ne: user._id } });
+    const normalizedMobileNumber = mobileNumber ? normalizeMobileNumber(mobileNumber) : "";
+    if (normalizedMobileNumber && normalizedMobileNumber !== user.mobileNumber) {
+      const exists = await User.findOne({
+        mobileNumber: normalizedMobileNumber,
+        _id: { $ne: user._id },
+        isDeleted: { $ne: true },
+        isActive: { $ne: false }
+      });
       if (exists) return errorResponse(res, 400, "Mobile number already in use");
-      user.mobileNumber = mobileNumber;
+      user.mobileNumber = normalizedMobileNumber;
     }
 
     user.fullName = fullName || user.fullName;

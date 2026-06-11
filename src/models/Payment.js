@@ -34,6 +34,17 @@ const paymentSchema = new mongoose.Schema(
     },
     provider: { type: String, default: "razorpay" },
     amount: { type: Number, required: true }, // paise
+    originalAmount: { type: Number, default: 0 },
+    couponCode: { type: String, trim: true, uppercase: true, default: null },
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon", default: null },
+    discountType: {
+      type: String,
+      enum: ["percentage", "fixed", null],
+      default: null
+    },
+    discountValue: { type: Number, default: 0 },
+    discountAmount: { type: Number, default: 0 },
+    discountedAmount: { type: Number, default: 0 },
     currency: { type: String, default: "INR" },
     status: {
       type: String,

@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:deleted-users": "node scripts/anonymize-deleted-users.js",
+    "migrate:banners": "node scripts/migrate-banner-types.js",
     "start": "node src/index.js"
   },
   "keywords": [],
