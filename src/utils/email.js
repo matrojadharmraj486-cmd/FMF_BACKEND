@@ -1,29 +1,59 @@
 import { logger } from "./logger.js";
 import nodemailer from "nodemailer";
 
+const env = (name) => String(process.env[name] || "").trim();
+const hasEnv = (name) => env(name).length > 0;
+
 const parseBoolean = (value, fallback = false) => {
   if (value === undefined || value === null || value === "") return fallback;
   return ["1", "true", "yes", "ssl"].includes(String(value).trim().toLowerCase());
 };
 
-const createSmtpTransport = () => {
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  if (!user || !pass) return null;
+const getSmtpConfig = () => {
+  const host = env("SMTP_HOST");
+  const port = Number(env("SMTP_PORT") || 465);
+  const user = env("SMTP_USER") || env("EMAIL_USER");
+  const pass = env("SMTP_PASS") || env("EMAIL_PASS");
+  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465);
+  const fromEmail = env("EMAIL_FROM") || env("SMTP_FROM") || user;
+  const fromName = env("EMAIL_FROM_NAME") || env("SMTP_FROM_NAME") || "Family Medicine Flashback";
 
-  if (process.env.SMTP_HOST) {
-    const port = Number(process.env.SMTP_PORT || 465);
+  return { host, port, secure, user, pass, fromEmail, fromName };
+};
+
+export const getEmailConfigSummary = () => {
+  const config = getSmtpConfig();
+  return {
+    provider: config.host ? "smtp" : (env("EMAIL_SERVICE") || "gmail"),
+    smtpHost: config.host || null,
+    smtpPort: config.host ? config.port : null,
+    smtpSecure: config.host ? config.secure : null,
+    hasSmtpUser: Boolean(config.user),
+    hasSmtpPass: Boolean(config.pass),
+    fromEmail: config.fromEmail || null,
+    hasBulk9EmailUrl: hasEnv("BULK9_EMAIL_URL")
+  };
+};
+
+const createSmtpTransport = () => {
+  const config = getSmtpConfig();
+  if (!config.user || !config.pass) return null;
+
+  if (config.host) {
     return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-      secure: parseBoolean(process.env.SMTP_SECURE, port === 465),
-      auth: { user, pass }
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: { user: config.user, pass: config.pass },
+      connectionTimeout: Number(env("SMTP_CONNECTION_TIMEOUT_MS") || 15000),
+      greetingTimeout: Number(env("SMTP_GREETING_TIMEOUT_MS") || 15000),
+      socketTimeout: Number(env("SMTP_SOCKET_TIMEOUT_MS") || 20000)
     });
   }
 
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || "gmail",
-    auth: { user, pass }
+    service: env("EMAIL_SERVICE") || "gmail",
+    auth: { user: config.user, pass: config.pass }
   });
 };
 
@@ -31,23 +61,26 @@ const sendSmtpEmail = async ({ to, subject, text, html }) => {
   const transport = createSmtpTransport();
   if (!transport) {
     const errMsg = "SMTP email is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS";
-    logger.error("sendSmtpEmail failed: no transport", { to, subject });
+    logger.error("sendSmtpEmail failed: no transport", {
+      to,
+      subject,
+      config: getEmailConfigSummary()
+    });
     throw new Error(errMsg);
   }
 
-  const fromEmail = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
-  const fromName = process.env.EMAIL_FROM_NAME || process.env.SMTP_FROM_NAME || "Family Medicine Flashback";
+  const config = getSmtpConfig();
 
   logger.info("SMTP email send starting", {
     to,
-    from: fromEmail,
-    provider: process.env.SMTP_HOST ? "smtp" : (process.env.EMAIL_SERVICE || "gmail"),
+    from: config.fromEmail,
+    config: getEmailConfigSummary(),
     subject
   });
 
   try {
     const info = await transport.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
+      from: `"${config.fromName}" <${config.fromEmail}>`,
       to,
       subject,
       text,
@@ -67,6 +100,10 @@ const sendSmtpEmail = async ({ to, subject, text, html }) => {
       to,
       subject,
       error: err.message,
+      code: err.code,
+      command: err.command,
+      responseCode: err.responseCode,
+      response: err.response,
       stack: err.stack
     });
     throw err;

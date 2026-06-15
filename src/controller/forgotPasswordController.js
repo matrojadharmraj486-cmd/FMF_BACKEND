@@ -3,10 +3,11 @@ import Otp from "../models/Otp.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendEmail } from "../utils/email.js";
+import { getEmailConfigSummary, sendEmail } from "../utils/email.js";
 import { buildOtpEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
+const env = (name) => String(process.env[name] || "").trim();
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -48,7 +49,14 @@ export const forgotPassword = async (req, res) => {
     });
 
     const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
-    if (process.env.BULK9_EMAIL_URL) {
+    const useBulk9Email = Boolean(env("BULK9_EMAIL_URL"));
+    logger.info("forgotPassword: email provider selected", {
+      email,
+      provider: useBulk9Email ? "bulk9-email" : "smtp",
+      emailConfig: getEmailConfigSummary()
+    });
+
+    if (useBulk9Email) {
       logger.info("forgotPassword: sending via Bulk9 email", { email });
       const response = await sendBulk9Email({
         to: email,

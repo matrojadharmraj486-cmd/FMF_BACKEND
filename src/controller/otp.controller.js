@@ -3,10 +3,11 @@ import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email, sendBulk9Sms } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendEmail } from "../utils/email.js";
+import { getEmailConfigSummary, sendEmail } from "../utils/email.js";
 import { buildOtpEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
+const env = (name) => String(process.env[name] || "").trim();
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || "");
 const isMobile = (value) => /^\d{10}$/.test(value || "");
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -73,16 +74,14 @@ export const sendOtp = async (req, res) => {
   try {
     if (normalizedEmail) {
       const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
+      const useBulk9Email = Boolean(env("BULK9_EMAIL_URL"));
       logger.info("sendOtp email delivery started", {
         identifier,
-        provider: process.env.BULK9_EMAIL_URL ? "bulk9-email" : "smtp",
-        hasBulk9EmailUrl: !!process.env.BULK9_EMAIL_URL,
-        hasSmtpHost: !!process.env.SMTP_HOST,
-        smtpHost: process.env.SMTP_HOST || null,
-        smtpPort: process.env.SMTP_PORT || null
+        provider: useBulk9Email ? "bulk9-email" : "smtp",
+        emailConfig: getEmailConfigSummary()
       });
 
-      if (process.env.BULK9_EMAIL_URL) {
+      if (useBulk9Email) {
         const response = await sendBulk9Email({
           to: normalizedEmail,
           subject,
