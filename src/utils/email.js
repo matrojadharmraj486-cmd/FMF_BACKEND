@@ -1,4 +1,5 @@
 import { logger } from "./logger.js";
+import dns from "dns";
 import nodemailer from "nodemailer";
 
 const env = (name) => String(process.env[name] || "").trim();
@@ -7,6 +8,18 @@ const hasEnv = (name) => env(name).length > 0;
 const parseBoolean = (value, fallback = false) => {
   if (value === undefined || value === null || value === "") return fallback;
   return ["1", "true", "yes", "ssl"].includes(String(value).trim().toLowerCase());
+};
+
+const createSmtpLookup = (family) => (hostname, options, callback) => {
+  dns.lookup(
+    hostname,
+    {
+      ...options,
+      all: false,
+      family
+    },
+    callback
+  );
 };
 
 const getSmtpConfig = () => {
@@ -46,6 +59,7 @@ const createSmtpTransport = () => {
       host: config.host,
       port: config.port,
       family: config.family,
+      lookup: createSmtpLookup(config.family),
       secure: config.secure,
       auth: { user: config.user, pass: config.pass },
       connectionTimeout: Number(env("SMTP_CONNECTION_TIMEOUT_MS") || 15000),
