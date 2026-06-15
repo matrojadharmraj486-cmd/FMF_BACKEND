@@ -12,13 +12,14 @@ const parseBoolean = (value, fallback = false) => {
 const getSmtpConfig = () => {
   const host = env("SMTP_HOST");
   const port = Number(env("SMTP_PORT") || 465);
+  const family = Number(env("SMTP_FAMILY") || 4);
   const user = env("SMTP_USER") || env("EMAIL_USER");
   const pass = env("SMTP_PASS") || env("EMAIL_PASS");
   const secure = parseBoolean(process.env.SMTP_SECURE, port === 465);
   const fromEmail = env("EMAIL_FROM") || env("SMTP_FROM") || user;
   const fromName = env("EMAIL_FROM_NAME") || env("SMTP_FROM_NAME") || "Family Medicine Flashback";
 
-  return { host, port, secure, user, pass, fromEmail, fromName };
+  return { host, port, family, secure, user, pass, fromEmail, fromName };
 };
 
 export const getEmailConfigSummary = () => {
@@ -27,6 +28,7 @@ export const getEmailConfigSummary = () => {
     provider: config.host ? "smtp" : (env("EMAIL_SERVICE") || "gmail"),
     smtpHost: config.host || null,
     smtpPort: config.host ? config.port : null,
+    smtpFamily: config.host ? config.family : null,
     smtpSecure: config.host ? config.secure : null,
     hasSmtpUser: Boolean(config.user),
     hasSmtpPass: Boolean(config.pass),
@@ -43,6 +45,7 @@ const createSmtpTransport = () => {
     return nodemailer.createTransport({
       host: config.host,
       port: config.port,
+      family: config.family,
       secure: config.secure,
       auth: { user: config.user, pass: config.pass },
       connectionTimeout: Number(env("SMTP_CONNECTION_TIMEOUT_MS") || 15000),
