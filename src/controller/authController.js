@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import { successResponse, errorResponse } from "../utils/response.js";
-import { sendBrevoEmail } from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 import { buildWelcomeEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
@@ -48,7 +48,7 @@ export const register = async (req, res) => {
     if (user.email) {
       try {
         const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
-        await sendBrevoEmail({
+        await sendEmail({
           to: user.email,
           subject: tpl.subject,
           text: tpl.text,

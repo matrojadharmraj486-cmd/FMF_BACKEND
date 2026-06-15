@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email, sendBulk9Sms } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendBrevoEmail } from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 import { buildOtpEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
@@ -75,11 +75,11 @@ export const sendOtp = async (req, res) => {
       const subject = process.env.OTP_EMAIL_SUBJECT || process.env.BULK9_EMAIL_SUBJECT || "Your OTP";
       logger.info("sendOtp email delivery started", {
         identifier,
-        provider: process.env.BULK9_EMAIL_URL ? "bulk9-email" : "brevo-api",
+        provider: process.env.BULK9_EMAIL_URL ? "bulk9-email" : "smtp",
         hasBulk9EmailUrl: !!process.env.BULK9_EMAIL_URL,
-        hasBrevoApiKey: !!process.env.BREVO_API_KEY,
-        brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || null,
-        brevoApiUrl: process.env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email"
+        hasSmtpHost: !!process.env.SMTP_HOST,
+        smtpHost: process.env.SMTP_HOST || null,
+        smtpPort: process.env.SMTP_PORT || null
       });
 
       if (process.env.BULK9_EMAIL_URL) {
@@ -95,7 +95,7 @@ export const sendOtp = async (req, res) => {
       } else {
         const name = user?.fullName || "User";
         const tpl = buildOtpEmail({ userName: name, otpCode: otp, ttlMinutes });
-        await sendBrevoEmail({
+        await sendEmail({
           to: normalizedEmail,
           subject: tpl.subject || subject,
           text: tpl.text || message,

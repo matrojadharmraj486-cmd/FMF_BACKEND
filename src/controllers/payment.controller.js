@@ -7,7 +7,7 @@ import Coupon from "../models/Coupon.js";
 import { getRazorpayClient } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
-import { sendBrevoEmail } from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 import { buildSubscriptionActivatedEmail } from "../utils/emailTemplates.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
@@ -268,7 +268,7 @@ export const verifyPayment = async (req, res) => {
             startDate,
             expiryDate: endDate
           });
-          await sendBrevoEmail({
+          await sendEmail({
             to: email,
             subject: tpl.subject,
             text: tpl.text,

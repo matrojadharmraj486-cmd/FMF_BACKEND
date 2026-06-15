@@ -3,7 +3,7 @@ import Otp from "../models/Otp.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { sendBulk9Email } from "../utils/bulk9.js";
 import { generateOtp, getOtpExpiry, hashOtp, formatOtpMessage } from "../utils/otp.js";
-import { sendBrevoEmail } from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 import { buildOtpEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 
@@ -66,9 +66,9 @@ export const forgotPassword = async (req, res) => {
         return errorResponse(res, 502, "Failed to send OTP email");
       }
     } else {
-      logger.info("forgotPassword: sending via Brevo/SMTP email", { email });
+      logger.info("forgotPassword: sending via SMTP email", { email });
       const tpl = buildOtpEmail({ userName: user?.fullName || "User", otpCode: otp, ttlMinutes });
-      await sendBrevoEmail({
+      await sendEmail({
         to: email,
         subject: tpl.subject || subject,
         text: tpl.text || message,
