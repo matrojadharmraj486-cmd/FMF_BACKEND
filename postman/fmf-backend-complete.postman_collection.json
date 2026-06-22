@@ -288,7 +288,14 @@
           "name": "Home",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "description": "Optional. When a valid user token is sent, the response includes the user's `subscription` summary (startDate, endDate, durationDays, durationLabel, remainingDays, status). Omit for anonymous access (subscription will be null)."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/home",
               "host": [
@@ -298,7 +305,8 @@
                 "api",
                 "home"
               ]
-            }
+            },
+            "description": "Public home feed (banners, testimonials, QOTD). Uses optional authentication: pass a Bearer user token to additionally receive the authenticated user's subscription details under `data.subscription`."
           }
         },
         {
