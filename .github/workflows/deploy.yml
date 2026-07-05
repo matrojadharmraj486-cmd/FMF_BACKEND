@@ -1,0 +1,25 @@
+name: Deploy to DigitalOcean Droplet
+
+# main branch par push thata j aa workflow chalu thashe
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd /var/www/FMF_BACKEND
+            git pull origin main
+            npm install --omit=dev
+            pm2 restart fmf-backend || pm2 start src/index.js --name fmf-backend
+            pm2 save
