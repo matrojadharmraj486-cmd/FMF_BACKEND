@@ -18,7 +18,7 @@ jobs:
           port: 22
           script: |
             set -e
-            cd /var/www/FMF_BACKEND
+            cd /var/www/api
             git pull origin main
             npm install --omit=dev
             pm2 restart fmf-backend || pm2 start src/index.js --name fmf-backend
