@@ -6,4 +6,7 @@ const otpSchema = new mongoose.Schema({
   expiresAt: Date
 }, { timestamps: true });
 
+// Auto-delete OTP records once they expire instead of leaving them to pile up.
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 export default mongoose.model("Otp", otpSchema);

@@ -8,6 +8,11 @@
     "migrate:deleted-users": "node scripts/anonymize-deleted-users.js",
     "migrate:banners": "node scripts/migrate-banner-types.js",
     "migrate:cluster": "node scripts/migrate-cluster.js",
+    "cloudinary:audit": "node scripts/cloudinary-audit.js",
+    "cloudinary:migrate": "node scripts/cloudinary-migrate-assets.js",
+    "cloudinary:migrate:apply": "node scripts/cloudinary-migrate-assets.js --apply",
+    "cloudinary:rewrite-db": "node scripts/cloudinary-rewrite-db.js",
+    "cloudinary:rewrite-db:apply": "node scripts/cloudinary-rewrite-db.js --apply",
     "start": "node src/index.js"
   },
   "keywords": [],

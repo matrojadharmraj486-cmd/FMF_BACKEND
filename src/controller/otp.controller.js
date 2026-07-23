@@ -175,6 +175,15 @@ export const verifyOtp = async (req, res) => {
     $or: [emailMatch(identifier), { mobileNumber: identifier }]
   });
 
+  // Mark a pending registration as verified so it is no longer auto-deleted.
+  if (user && !user.isVerified) {
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { isVerified: true }, $unset: { pendingExpiresAt: "" } }
+    );
+    user.isVerified = true;
+  }
+
   return successResponse(res, 200, "OTP verified successfully", {
     identifier,
     isUserExist: !!user,

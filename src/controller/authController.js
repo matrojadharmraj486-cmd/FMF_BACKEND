@@ -30,18 +30,41 @@ export const register = async (req, res) => {
       ]
     });
 
-    if (existingUser) {
+    // Only a fully verified account blocks re-registration. An unverified
+    // (pending/abandoned) account is reclaimed below so the user isn't stuck.
+    if (existingUser && existingUser.isVerified) {
       return errorResponse(res, 400, "User already exists with this email or mobile number");
     }
 
-    const user = await User.create({
-      ...req.body,
-      email,
-      mobileNumber,
-      isVerified: true,
-      isActive: true,
-      isDeleted: false
-    });
+    // New accounts start unverified and self-destruct if the OTP step is never
+    // completed (see the TTL index on User.pendingExpiresAt).
+    const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
+    const pendingExpiresAt = new Date(Date.now() + PENDING_TTL_MS);
+
+    let user;
+    if (existingUser) {
+      // Reclaim the abandoned registration with the latest submitted details.
+      existingUser.set({
+        ...req.body,
+        email,
+        mobileNumber,
+        isVerified: false,
+        isActive: true,
+        isDeleted: false,
+        pendingExpiresAt
+      });
+      user = await existingUser.save();
+    } else {
+      user = await User.create({
+        ...req.body,
+        email,
+        mobileNumber,
+        isVerified: false,
+        isActive: true,
+        isDeleted: false,
+        pendingExpiresAt
+      });
+    }
 
     const token = generateToken(user._id);
 

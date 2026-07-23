@@ -43,8 +43,15 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   isDeleted: { type: Boolean, default: false },
+  // Set for pending (unverified) registrations only. Cleared once the user
+  // verifies their OTP, so completed accounts are never auto-deleted.
+  pendingExpiresAt: { type: Date, default: null },
   lastLogin: Date
 }, { timestamps: true });
+
+// TTL index: MongoDB auto-deletes abandoned registrations once pendingExpiresAt
+// passes. Docs where the field is null/unset (verified users) are ignored.
+userSchema.index({ pendingExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
