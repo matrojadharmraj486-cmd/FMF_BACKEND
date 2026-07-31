@@ -79,7 +79,12 @@ console.log("update profile API BODY", req?.body)
 
     await user.save();
 
-    return successResponse(res, 200, "Profile updated", user);
+    const missingFields = user.getMissingProfileFields();
+    return successResponse(res, 200, "Profile updated", {
+      ...user.toObject(),
+      isProfileComplete: missingFields.length === 0,
+      missingFields
+    });
 
   } catch (err) {
     return errorResponse(res, 500, err.message);
@@ -93,9 +98,12 @@ export const getMyProfile = async (req, res) => {
     if (!user)
       return errorResponse(res, 404, "User not found");
 
+    const missingFields = user.getMissingProfileFields();
     const data = {
       ...user.toObject(),
-      photoUrl: user.profileImg || null
+      photoUrl: user.profileImg || null,
+      isProfileComplete: missingFields.length === 0,
+      missingFields
     };
     return successResponse(res, 200, "Profile fetched", data);
   } catch (err) {

@@ -32,13 +32,19 @@ export const register = async (req, res) => {
 
     // A verified account blocks re-registration. Legacy rows that the older flow
     // left unverified are still reclaimed below so those users aren't stuck.
-    // Mirrors the verify-otp payload so the client can route straight to login
-    // instead of leaving the user stranded on the register screen.
+    // Mirrors the verify-otp payload so the client can route straight to the
+    // right screen instead of leaving the user stranded on register.
     if (existingUser && existingUser.isVerified) {
-      return errorResponse(res, 400, "User already exists with this email or mobile number", {
+      const isSocialAccount = Boolean(existingUser.firebaseUid);
+      const message = isSocialAccount
+        ? "This account already exists with social sign-in. Please continue with Google or Apple."
+        : "User already exists with this email or mobile number";
+
+      return errorResponse(res, 400, message, {
         identifier: email || mobileNumber,
         isUserExist: true,
-        nextStep: "LOGIN"
+        nextStep: isSocialAccount ? "SOCIAL_LOGIN" : "LOGIN",
+        authProvider: existingUser.authProvider || null
       });
     }
 
@@ -137,6 +143,16 @@ export const login = async (req, res) => {
       return successResponse(res, 200, "Login successful (Mobile)", {
         user,
         token
+      });
+    }
+
+    // Google/Apple accounts never got a password, so send them back to the
+    // button they actually signed up with instead of "Invalid password".
+    if (!user.password) {
+      return errorResponse(res, 400, "This account uses social sign-in. Please continue with Google or Apple.", {
+        identifier,
+        nextStep: "SOCIAL_LOGIN",
+        authProvider: user.authProvider || null
       });
     }
 

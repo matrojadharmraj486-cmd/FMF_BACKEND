@@ -43,8 +43,20 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
   isDeleted: { type: Boolean, default: false },
+  // Firebase Auth uid. Only set on accounts that signed in with Google/Apple,
+  // so the sparse unique index ignores every password/OTP account.
+  firebaseUid: { type: String, unique: true, sparse: true },
+  authProvider: { type: String, default: "local" },
   lastLogin: Date
 }, { timestamps: true });
+
+// Social sign-in gives us no phone number, so these are collected afterwards
+// through the profile screen before the account counts as usable.
+export const PROFILE_REQUIRED_FIELDS = ["fullName", "mobileNumber"];
+
+userSchema.methods.getMissingProfileFields = function () {
+  return PROFILE_REQUIRED_FIELDS.filter((field) => !String(this[field] ?? "").trim());
+};
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
@@ -52,6 +64,8 @@ userSchema.pre("save", async function () {
 });
 
 userSchema.methods.comparePassword = function (password) {
+  // Social-only accounts have no password; bcrypt would throw on undefined.
+  if (!this.password) return false;
   return bcrypt.compare(password, this.password);
 };
 
