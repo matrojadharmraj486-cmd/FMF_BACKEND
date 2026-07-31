@@ -30,17 +30,20 @@ export const register = async (req, res) => {
       ]
     });
 
-    // Only a fully verified account blocks re-registration. An unverified
-    // (pending/abandoned) account is reclaimed below so the user isn't stuck.
+    // A verified account blocks re-registration. Legacy rows that the older flow
+    // left unverified are still reclaimed below so those users aren't stuck.
+    // Mirrors the verify-otp payload so the client can route straight to login
+    // instead of leaving the user stranded on the register screen.
     if (existingUser && existingUser.isVerified) {
-      return errorResponse(res, 400, "User already exists with this email or mobile number");
+      return errorResponse(res, 400, "User already exists with this email or mobile number", {
+        identifier: email || mobileNumber,
+        isUserExist: true,
+        nextStep: "LOGIN"
+      });
     }
 
-    // New accounts start unverified and self-destruct if the OTP step is never
-    // completed (see the TTL index on User.pendingExpiresAt).
-    const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
-    const pendingExpiresAt = new Date(Date.now() + PENDING_TTL_MS);
-
+    // Registration is only reachable after /auth/verify-otp succeeds, so the
+    // account is verified from the moment it is created.
     let user;
     if (existingUser) {
       // Reclaim the abandoned registration with the latest submitted details.
@@ -48,10 +51,9 @@ export const register = async (req, res) => {
         ...req.body,
         email,
         mobileNumber,
-        isVerified: false,
+        isVerified: true,
         isActive: true,
-        isDeleted: false,
-        pendingExpiresAt
+        isDeleted: false
       });
       user = await existingUser.save();
     } else {
@@ -59,10 +61,9 @@ export const register = async (req, res) => {
         ...req.body,
         email,
         mobileNumber,
-        isVerified: false,
+        isVerified: true,
         isActive: true,
-        isDeleted: false,
-        pendingExpiresAt
+        isDeleted: false
       });
     }
 
