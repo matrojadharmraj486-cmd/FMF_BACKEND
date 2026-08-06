@@ -47,6 +47,13 @@ const userSchema = new mongoose.Schema({
   // so the sparse unique index ignores every password/OTP account.
   firebaseUid: { type: String, unique: true, sparse: true },
   authProvider: { type: String, default: "local" },
+  // Single-device login. Every app login writes a fresh id here and stamps it
+  // into the JWT, so the token held by the previously signed-in device stops
+  // matching and is rejected on its next request. Admin accounts are exempt.
+  activeSessionId: { type: String, default: null },
+  // Set only when the client sends one. Lets the same physical device log in
+  // again (retry, token refresh) without rotating the session on itself.
+  activeDeviceId: { type: String, default: "" },
   lastLogin: Date
 }, { timestamps: true });
 

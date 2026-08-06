@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { sendEmail } from "../utils/email.js";
 import { buildWelcomeEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
+import { endSession, startSession } from "../utils/session.js";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 const normalizeMobileNumber = (value) => String(value || "").trim();
@@ -73,7 +74,8 @@ export const register = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const sessionId = await startSession(user, req.body);
+    const token = generateToken(user._id, sessionId);
 
     if (user.email) {
       try {
@@ -138,7 +140,8 @@ export const login = async (req, res) => {
       user.lastLogin = new Date();
       await user.save();
 
-      const token = generateToken(user._id);
+      const sessionId = await startSession(user, req.body);
+      const token = generateToken(user._id, sessionId);
 
       return successResponse(res, 200, "Login successful (Mobile)", {
         user,
@@ -166,12 +169,25 @@ export const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    const token = generateToken(user._id);
+    const sessionId = await startSession(user, req.body);
+    const token = generateToken(user._id, sessionId);
 
     return successResponse(res, 200, "Login successful (Email)", {
       user,
       token
     });
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
+  }
+};
+
+// Closes the active session so the token is dead server-side too, instead of
+// staying valid for the rest of its 7 days after the app drops it.
+export const logout = async (req, res) => {
+  try {
+    await endSession(req.user._id);
+    logger.info("User logged out", { userId: req.user._id });
+    return successResponse(res, 200, "Logged out successfully");
   } catch (err) {
     return errorResponse(res, 500, err.message);
   }

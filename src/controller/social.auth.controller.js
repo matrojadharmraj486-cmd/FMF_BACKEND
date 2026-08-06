@@ -3,6 +3,7 @@ import { generateToken } from "../utils/jwt.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { getFirebaseAdmin } from "../utils/firebase.js";
 import { logger } from "../utils/logger.js";
+import { startSession } from "../utils/session.js";
 
 // Firebase reports the provider that actually signed the user in. Anything
 // outside this list (password, phone, facebook...) is rejected on purpose.
@@ -17,11 +18,11 @@ const emailMatch = (email) => ({
   email: { $regex: `^${escapeRegex(email)}$`, $options: "i" }
 });
 
-const buildAuthPayload = (user, extras = {}) => {
+const buildAuthPayload = (user, sessionId, extras = {}) => {
   const missingFields = user.getMissingProfileFields();
   return {
     user,
-    token: generateToken(user._id),
+    token: generateToken(user._id, sessionId),
     isProfileComplete: missingFields.length === 0,
     missingFields,
     ...extras
@@ -133,7 +134,9 @@ export const socialLogin = async (req, res) => {
       linkedExistingAccount
     });
 
-    return successResponse(res, 200, `Login successful (${providerLabel})`, buildAuthPayload(user, {
+    const sessionId = await startSession(user, req.body);
+
+    return successResponse(res, 200, `Login successful (${providerLabel})`, buildAuthPayload(user, sessionId, {
       isNewUser,
       authProvider: provider
     }));
