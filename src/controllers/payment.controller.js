@@ -474,6 +474,284 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
+// Expected iOS bundle id the Apple receipt must belong to.
+const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID || "com.viseatech.fmf";
+
+// Optional productId -> subscription plan mapping, used only when the app does
+// not send a Razorpay order id. Configure via env IAP_PRODUCT_PLAN_MAP, e.g.
+//   IAP_PRODUCT_PLAN_MAP={"com.viseatech.fmf.basic180":"69cfb4bcf97025ee8f11169a"}
+const getProductPlanMap = () => {
+  const raw = process.env.IAP_PRODUCT_PLAN_MAP;
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    payLog("verifyIap:productMapParseError", { error: e.message });
+    return {};
+  }
+};
+
+export const verifyIap = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const rawPlatform = String(body.platform || "").trim().toLowerCase();
+    const verificationData = body.verificationData || body.receiptData || body.signedTransaction;
+    const purchaseToken = body.purchaseToken || body.token;
+    const productId = String(body.productId || "").trim();
+    const orderId = String(body.order_id || body.orderId || "").trim();
+
+    // Detect the store: explicit `platform` wins, otherwise infer from payload.
+    const platform =
+      rawPlatform === "apple" || rawPlatform === "ios"
+        ? "apple"
+        : rawPlatform === "google" || rawPlatform === "android"
+          ? "google"
+          : verificationData
+            ? "apple"
+            : purchaseToken
+              ? "google"
+              : null;
+
+    payLog("verifyIap:request", {
+      userId: String(req.user?._id || ""),
+      platform,
+      productId,
+      orderId,
+      purchaseId: maskValue(body.purchaseId),
+      hasVerificationData: !!verificationData,
+      hasPurchaseToken: !!purchaseToken,
+      bodyKeys: Object.keys(body)
+    });
+
+    if (!platform) {
+      payLog("verifyIap:reject", { reason: "unknown_platform" });
+      return errorResponse(
+        res,
+        400,
+        "Could not determine store platform (send platform, verificationData, or purchaseToken)"
+      );
+    }
+
+    // 1) Verify the purchase directly with the store.
+    let storeInfo;
+    if (platform === "apple") {
+      if (!verificationData) {
+        payLog("verifyIap:reject", { reason: "missing_apple_receipt" });
+        return errorResponse(res, 400, "verificationData (Apple signed transaction) is required");
+      }
+      try {
+        const { payload } = verifyAppleSignedData(verificationData);
+        storeInfo = {
+          productId: payload.productId,
+          transactionId: String(payload.transactionId || ""),
+          originalTransactionId: String(payload.originalTransactionId || ""),
+          environment: payload.environment,
+          bundleId: payload.bundleId,
+          expiresDate: payload.expiresDate
+        };
+        payLog("verifyIap:appleVerified", {
+          productId: storeInfo.productId,
+          transactionId: maskValue(storeInfo.transactionId),
+          environment: storeInfo.environment,
+          bundleId: storeInfo.bundleId,
+          expiresDate: storeInfo.expiresDate
+        });
+      } catch (e) {
+        payLog("verifyIap:appleVerifyFailed", {
+          code: e.code,
+          error: e.message,
+          claimed: decodeAppleSignedDataUnsafe(verificationData)
+        });
+        return errorResponse(res, 400, `Apple receipt verification failed: ${e.message}`);
+      }
+
+      if (storeInfo.bundleId && storeInfo.bundleId !== APPLE_BUNDLE_ID) {
+        payLog("verifyIap:reject", {
+          reason: "bundle_mismatch",
+          got: storeInfo.bundleId,
+          expected: APPLE_BUNDLE_ID
+        });
+        return errorResponse(res, 400, "Apple receipt is for a different app");
+      }
+    } else {
+      if (!isGooglePlayConfigured()) {
+        payLog("verifyIap:reject", { reason: "google_not_configured" });
+        return errorResponse(res, 503, "Google Play verification is not configured on the server");
+      }
+      try {
+        storeInfo = await verifyGooglePurchase({
+          packageName: body.packageName,
+          productId,
+          purchaseToken
+        });
+        payLog("verifyIap:googleVerified", {
+          productId: storeInfo?.productId,
+          transactionId: maskValue(storeInfo?.transactionId)
+        });
+      } catch (e) {
+        payLog("verifyIap:googleVerifyFailed", { code: e.code, error: e.message });
+        const status = e.code === "GOOGLE_PLAY_NOT_CONFIGURED" ? 503 : 400;
+        return errorResponse(res, status, e.message);
+      }
+    }
+
+    // 2) Idempotency: has this exact store transaction already been applied?
+    const txnId = storeInfo.transactionId || "";
+    if (txnId) {
+      const existing = await Payment.findOne({ iapTransactionId: txnId });
+      if (existing) {
+        if (existing.user?.toString() !== req.user?._id?.toString()) {
+          payLog("verifyIap:reject", {
+            reason: "transaction_owned_by_other_user",
+            transactionId: maskValue(txnId),
+            owner: String(existing.user || "")
+          });
+          return errorResponse(res, 409, "This purchase is already linked to another account");
+        }
+        payLog("verifyIap:alreadyApplied", {
+          paymentId: String(existing._id),
+          status: existing.status,
+          note: "store transaction already recorded — returning idempotent success"
+        });
+        return successResponse(res, 200, "Purchase already verified", {
+          paymentId: existing._id,
+          status: existing.status
+        });
+      }
+    }
+
+    // 3) Locate the Payment to activate — primary: Razorpay order id.
+    let payment = null;
+    if (orderId) {
+      payment = await Payment.findOne({ razorpayOrderId: orderId }).populate("subscription");
+      if (payment && payment.user?.toString() !== req.user?._id?.toString()) {
+        payLog("verifyIap:reject", {
+          reason: "ownership_mismatch",
+          paymentUser: String(payment.user || ""),
+          requestUser: String(req.user?._id || "")
+        });
+        return errorResponse(res, 403, "Payment does not belong to this user");
+      }
+      payLog("verifyIap:paymentLookup", {
+        via: "order_id",
+        orderId,
+        found: !!payment,
+        currentStatus: payment?.status
+      });
+    }
+
+    // Fallback: no linked order → resolve the plan from the productId map and
+    // create a Payment record for the store purchase.
+    if (!payment) {
+      const planMap = getProductPlanMap();
+      const mappedPlanId = planMap[storeInfo.productId] || planMap[productId];
+      payLog("verifyIap:productFallback", {
+        productId: storeInfo.productId,
+        mappedPlanId: mappedPlanId || null,
+        hasMap: Object.keys(planMap).length > 0
+      });
+      if (!mappedPlanId || !mongoose.Types.ObjectId.isValid(mappedPlanId)) {
+        payLog("verifyIap:reject", { reason: "no_plan_for_product", productId: storeInfo.productId });
+        return errorResponse(res, 404, "Could not resolve a subscription plan for this purchase");
+      }
+      const subscription = await Subscription.findById(mappedPlanId);
+      if (!subscription || !subscription.isActive) {
+        payLog("verifyIap:reject", { reason: "mapped_plan_unavailable", mappedPlanId });
+        return errorResponse(res, 404, "Subscription plan for this purchase is unavailable");
+      }
+      const totals = calcSubscriptionTotals(subscription);
+      const amountInr = roundMoney(totals?.total ?? Number(subscription.price));
+      payment = await Payment.create({
+        user: req.user?._id,
+        subscription: subscription._id,
+        provider: platform,
+        amount: toPaise(amountInr),
+        originalAmount: amountInr,
+        currency: subscription.currency || "INR",
+        status: "created",
+        razorpayOrderId: `iap_${platform}_${txnId || Date.now()}`
+      });
+      await payment.populate("subscription");
+      payLog("verifyIap:paymentCreated", {
+        paymentId: String(payment._id),
+        via: "productId_fallback",
+        subscriptionId: String(subscription._id)
+      });
+    }
+
+    if (!payment.subscription) {
+      payLog("verifyIap:reject", { reason: "payment_missing_subscription", paymentId: String(payment._id) });
+      return errorResponse(res, 409, "Payment has no subscription to activate");
+    }
+
+    // 4) Mark paid + activate the subscription.
+    if (payment.status !== "paid") {
+      const previousStatus = payment.status;
+      payment.status = "paid";
+      payment.platform = platform;
+      payment.iapProductId = storeInfo.productId || productId || null;
+      payment.iapTransactionId = txnId || null;
+      payment.iapOriginalTransactionId = storeInfo.originalTransactionId || null;
+      payment.iapEnvironment = storeInfo.environment || null;
+      await payment.save();
+      payLog("verifyIap:statusUpdated", {
+        paymentId: String(payment._id),
+        from: previousStatus,
+        to: payment.status,
+        platform
+      });
+
+      const { startDate, endDate } = await activateSubscriptionForUser({
+        userId: payment.user,
+        subscription: payment.subscription,
+        paymentId: payment._id
+      });
+
+      try {
+        const user = await User.findById(payment.user).lean();
+        const email = String(user?.email || "").trim();
+        if (email) {
+          const tpl = buildSubscriptionActivatedEmail({
+            userName: user?.fullName || "User",
+            planName: payment.subscription?.name,
+            startDate,
+            expiryDate: endDate
+          });
+          await sendEmail({ to: email, subject: tpl.subject, text: tpl.text, html: tpl.html });
+          payLog("verifyIap:emailSent", { paymentId: String(payment._id), to: maskValue(email) });
+        }
+      } catch (e) {
+        payLog("verifyIap:emailFailed", { paymentId: String(payment._id), error: e.message });
+        logger.warn("IAP activation email failed", {
+          userId: payment.user,
+          paymentId: payment._id,
+          error: e.message
+        });
+      }
+    } else {
+      payLog("verifyIap:alreadyPaid", { paymentId: String(payment._id), status: payment.status });
+    }
+
+    payLog("verifyIap:response", {
+      paymentId: String(payment._id),
+      status: payment.status,
+      platform
+    });
+    return successResponse(res, 200, "Purchase verified", {
+      paymentId: payment._id,
+      status: payment.status
+    });
+  } catch (e) {
+    logger.error("Verify IAP failed", {
+      error: serializeError(e),
+      userId: req.user?._id
+    });
+    const msg = e?.error?.description || e?.message || "Verify IAP failed";
+    return errorResponse(res, 500, msg);
+  }
+};
+
 export const markPaymentFailed = async (req, res) => {
   try {
     const { razorpay_order_id, reason, error } = req.body || {};
