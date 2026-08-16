@@ -56,6 +56,13 @@ const paymentSchema = new mongoose.Schema(
     razorpaySignature: String,
     receipt: String,
     method: String,
+    // In-App Purchase (Apple StoreKit / Google Play) fields. Populated only when
+    // the payment is confirmed through a mobile store instead of Razorpay.
+    platform: { type: String, enum: ["apple", "google", null], default: null },
+    iapProductId: { type: String, default: null },
+    iapTransactionId: { type: String, default: null, index: true, sparse: true },
+    iapOriginalTransactionId: { type: String, default: null },
+    iapEnvironment: { type: String, default: null },
     notes: Object,
     error: Object
   },

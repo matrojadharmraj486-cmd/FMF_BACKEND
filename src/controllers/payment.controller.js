@@ -9,6 +9,8 @@ import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
 import { sendEmail } from "../utils/email.js";
 import { buildSubscriptionActivatedEmail } from "../utils/emailTemplates.js";
+import { verifyAppleSignedData, decodeAppleSignedDataUnsafe } from "../utils/appleIap.js";
+import { verifyGooglePurchase, isGooglePlayConfigured } from "../utils/googlePlay.js";
 
 const toPaise = (amountInr) => Math.round(amountInr * 100);
 const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
