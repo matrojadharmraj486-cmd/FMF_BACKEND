@@ -2,3 +2,5 @@
 .gitignore
 node_modules/
 scripts/.cloudinary-migrate-state.json
+*.doc
+FMF-Third-Party-Accounts.doc

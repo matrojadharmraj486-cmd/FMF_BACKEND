@@ -69,20 +69,62 @@ const serializeError = (e) => {
   };
 };
 
+// --- Payment debug logging (testing aid) -------------------------------------
+// Plain console.log tracing so the full payment lifecycle is visible in the
+// process/pm2 logs. Every line is prefixed `[PAYMENT][<stage>]` so it can be
+// grepped easily. Secrets (key secret) are never logged; signatures/ids are
+// masked. Remove or lower verbosity once the flow is confirmed working.
+const payLog = (stage, data) => {
+  try {
+    console.log(`[PAYMENT][${stage}]`, JSON.stringify(data));
+  } catch {
+    console.log(`[PAYMENT][${stage}]`, data);
+  }
+};
+
+const maskValue = (v) => {
+  const s = String(v ?? "");
+  if (!s) return "";
+  if (s.length <= 8) return "***";
+  return `${s.slice(0, 4)}...${s.slice(-4)}`;
+};
+
 const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) => {
   const now = new Date();
   const endDate = new Date(now);
   endDate.setDate(endDate.getDate() + Number(subscription.durationDays || 0));
 
-  await User.findByIdAndUpdate(userId, {
-    isSubscribed: true,
-    subscription: {
-      plan: subscription._id,
-      status: "active",
-      startDate: now,
-      endDate,
-      lastPaymentId: paymentId
-    }
+  payLog("activateSubscription:start", {
+    userId: String(userId || ""),
+    planId: String(subscription?._id || ""),
+    planName: subscription?.name,
+    durationDays: subscription?.durationDays,
+    startDate: now.toISOString(),
+    endDate: endDate.toISOString(),
+    paymentId: String(paymentId || "")
+  });
+
+  const updated = await User.findByIdAndUpdate(
+    userId,
+    {
+      isSubscribed: true,
+      subscription: {
+        plan: subscription._id,
+        status: "active",
+        startDate: now,
+        endDate,
+        lastPaymentId: paymentId
+      }
+    },
+    { new: true }
+  );
+
+  payLog("activateSubscription:done", {
+    userId: String(userId || ""),
+    userFound: !!updated,
+    isSubscribed: updated?.isSubscribed,
+    subscriptionStatus: updated?.subscription?.status,
+    endDate: updated?.subscription?.endDate
   });
 
   return { startDate: now, endDate };
@@ -90,11 +132,29 @@ const activateSubscriptionForUser = async ({ userId, subscription, paymentId }) 
 
 export const createOrder = async (req, res) => {
   try {
+    payLog("createOrder:request", {
+      userId: String(req.user?._id || ""),
+      bodyKeys: Object.keys(req.body || {}),
+      subscriptionId: req.body?.subscriptionId,
+      couponCode: req.body?.couponCode || req.body?.appliedCouponCode,
+      couponId: req.body?.couponId
+    });
+
     const { razorpay, keyId, keySecret, isActive, source } = await getRazorpayClient();
+    payLog("createOrder:gateway", {
+      source,
+      isActive,
+      hasClient: !!razorpay,
+      hasKeyId: !!keyId,
+      hasKeySecret: !!keySecret,
+      keyId: maskValue(keyId)
+    });
     if (!razorpay || !keyId || !keySecret) {
       if (source === "db" && isActive === false) {
+        payLog("createOrder:reject", { reason: "gateway_inactive" });
         return errorResponse(res, 503, "Razorpay is inactive");
       }
+      payLog("createOrder:reject", { reason: "gateway_not_configured" });
       return errorResponse(res, 503, "Razorpay is not configured");
     }
     const { subscriptionId } = req.body || {};
@@ -113,8 +173,23 @@ export const createOrder = async (req, res) => {
     }
 
     const subscription = await Subscription.findById(subscriptionId);
-    if (!subscription || !subscription.isActive)
+    if (!subscription || !subscription.isActive) {
+      payLog("createOrder:reject", {
+        reason: "subscription_unavailable",
+        subscriptionId,
+        found: !!subscription,
+        isActive: subscription?.isActive
+      });
       return errorResponse(res, 404, "Subscription not available");
+    }
+    payLog("createOrder:subscription", {
+      id: String(subscription._id),
+      name: subscription.name,
+      price: subscription.price,
+      gstPercent: subscription.gstPercent,
+      durationDays: subscription.durationDays,
+      currency: subscription.currency
+    });
 
     const totals = calcSubscriptionTotals(subscription);
     const originalAmount = roundMoney(totals?.total ?? Number(subscription.price));
@@ -130,7 +205,18 @@ export const createOrder = async (req, res) => {
 
     const discount = calculateCouponDiscount(originalAmount, coupon);
     const amount = toPaise(discount.discountedAmount);
-    if (!amount || amount <= 0) return errorResponse(res, 400, "Invalid subscription amount");
+    payLog("createOrder:amount", {
+      originalAmount,
+      couponCode: discount.couponCode,
+      discountType: discount.discountType,
+      discountAmount: discount.discountAmount,
+      discountedAmount: discount.discountedAmount,
+      amountPaise: amount
+    });
+    if (!amount || amount <= 0) {
+      payLog("createOrder:reject", { reason: "invalid_amount", amountPaise: amount });
+      return errorResponse(res, 400, "Invalid subscription amount");
+    }
 
     const shortSubId = String(subscription._id || "").replace(/[^a-zA-Z0-9]/g, "").slice(-10);
     const receipt = `sub_${shortSubId}_${Date.now()}`.slice(0, 40);
@@ -148,6 +234,13 @@ export const createOrder = async (req, res) => {
         discountedAmount: discount.discountedAmount
       }
     });
+    payLog("createOrder:razorpayOrder", {
+      orderId: order?.id,
+      status: order?.status,
+      amount: order?.amount,
+      currency: order?.currency,
+      receipt: order?.receipt
+    });
 
     const payment = await Payment.create({
       user: req.user?._id,
@@ -164,6 +257,19 @@ export const createOrder = async (req, res) => {
       razorpayOrderId: order.id,
       receipt,
       notes: order.notes
+    });
+    payLog("createOrder:paymentDoc", {
+      paymentId: String(payment._id),
+      orderNumber: payment.orderNumber,
+      razorpayOrderId: payment.razorpayOrderId,
+      status: payment.status,
+      amountPaise: payment.amount
+    });
+    payLog("createOrder:response", {
+      paymentId: String(payment._id),
+      orderId: order.id,
+      status: payment.status,
+      note: "status stays 'created' until /verify or webhook confirms payment"
     });
 
     return successResponse(res, 201, "Order created", {
@@ -216,12 +322,28 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
-    const { keySecret } = await getRazorpayClient({ allowInactive: true });
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    payLog("verifyPayment:request", {
+      userId: String(req.user?._id || ""),
+      bodyKeys: Object.keys(req.body || {}),
+      razorpay_order_id,
+      razorpay_payment_id: maskValue(razorpay_payment_id),
+      hasSignature: !!razorpay_signature
+    });
+
+    const { keySecret, source, isActive } = await getRazorpayClient({ allowInactive: true });
+    payLog("verifyPayment:gateway", { source, isActive, hasKeySecret: !!keySecret });
     if (!keySecret) {
+      payLog("verifyPayment:reject", { reason: "gateway_not_configured" });
       return errorResponse(res, 503, "Razorpay is not configured");
     }
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      payLog("verifyPayment:reject", {
+        reason: "missing_fields",
+        hasOrderId: !!razorpay_order_id,
+        hasPaymentId: !!razorpay_payment_id,
+        hasSignature: !!razorpay_signature
+      });
       return errorResponse(res, 400, "razorpay_order_id, razorpay_payment_id, razorpay_signature required");
     }
 
@@ -230,27 +352,63 @@ export const verifyPayment = async (req, res) => {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
-      await Payment.findOneAndUpdate(
+    const signatureMatch = expectedSignature === razorpay_signature;
+    payLog("verifyPayment:signature", {
+      razorpay_order_id,
+      match: signatureMatch,
+      expected: maskValue(expectedSignature),
+      received: maskValue(razorpay_signature)
+    });
+
+    if (!signatureMatch) {
+      const failed = await Payment.findOneAndUpdate(
         { razorpayOrderId: razorpay_order_id },
-        { status: "failed", error: { reason: "signature_mismatch" } }
+        { status: "failed", error: { reason: "signature_mismatch" } },
+        { new: true }
       );
+      payLog("verifyPayment:reject", {
+        reason: "signature_mismatch",
+        paymentFound: !!failed,
+        newStatus: failed?.status
+      });
       return errorResponse(res, 400, "Invalid payment signature");
     }
 
     const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id }).populate(
       "subscription"
     );
-    if (!payment) return errorResponse(res, 404, "Payment not found");
+    if (!payment) {
+      payLog("verifyPayment:reject", { reason: "payment_not_found", razorpay_order_id });
+      return errorResponse(res, 404, "Payment not found");
+    }
+    payLog("verifyPayment:paymentFound", {
+      paymentId: String(payment._id),
+      currentStatus: payment.status,
+      paymentUser: String(payment.user || ""),
+      requestUser: String(req.user?._id || ""),
+      subscriptionId: String(payment.subscription?._id || "")
+    });
+
     if (payment.user?.toString() !== req.user?._id?.toString()) {
+      payLog("verifyPayment:reject", {
+        reason: "ownership_mismatch",
+        paymentUser: String(payment.user || ""),
+        requestUser: String(req.user?._id || "")
+      });
       return errorResponse(res, 403, "Payment does not belong to this user");
     }
 
     if (payment.status !== "paid") {
+      const previousStatus = payment.status;
       payment.status = "paid";
       payment.razorpayPaymentId = razorpay_payment_id;
       payment.razorpaySignature = razorpay_signature;
       await payment.save();
+      payLog("verifyPayment:statusUpdated", {
+        paymentId: String(payment._id),
+        from: previousStatus,
+        to: payment.status
+      });
 
       const { startDate, endDate } = await activateSubscriptionForUser({
         userId: payment.user,
@@ -274,15 +432,30 @@ export const verifyPayment = async (req, res) => {
             text: tpl.text,
             html: tpl.html
           });
+          payLog("verifyPayment:emailSent", { paymentId: String(payment._id), to: maskValue(email) });
+        } else {
+          payLog("verifyPayment:emailSkipped", { paymentId: String(payment._id), reason: "no_email" });
         }
       } catch (e) {
+        payLog("verifyPayment:emailFailed", { paymentId: String(payment._id), error: e.message });
         logger.warn("Subscription activation email failed", {
           userId: payment.user,
           paymentId: payment._id,
           error: e.message
         });
       }
+    } else {
+      payLog("verifyPayment:alreadyPaid", {
+        paymentId: String(payment._id),
+        status: payment.status,
+        note: "status was already 'paid' — skipping re-activation (idempotent)"
+      });
     }
+
+    payLog("verifyPayment:response", {
+      paymentId: String(payment._id),
+      status: payment.status
+    });
 
     return successResponse(res, 200, "Payment verified", {
       paymentId: payment._id,
@@ -302,19 +475,48 @@ export const verifyPayment = async (req, res) => {
 export const markPaymentFailed = async (req, res) => {
   try {
     const { razorpay_order_id, reason, error } = req.body || {};
+    payLog("markPaymentFailed:request", {
+      userId: String(req.user?._id || ""),
+      razorpay_order_id,
+      reason
+    });
     if (!razorpay_order_id) {
+      payLog("markPaymentFailed:reject", { reason: "missing_order_id" });
       return errorResponse(res, 400, "razorpay_order_id required");
     }
 
     const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
-    if (!payment) return errorResponse(res, 404, "Payment not found");
+    if (!payment) {
+      payLog("markPaymentFailed:reject", { reason: "payment_not_found", razorpay_order_id });
+      return errorResponse(res, 404, "Payment not found");
+    }
     if (payment.user?.toString() !== req.user?._id?.toString()) {
+      payLog("markPaymentFailed:reject", {
+        reason: "ownership_mismatch",
+        paymentUser: String(payment.user || ""),
+        requestUser: String(req.user?._id || "")
+      });
       return errorResponse(res, 403, "Payment does not belong to this user");
+    }
+
+    const previousStatus = payment.status;
+    if (previousStatus === "paid") {
+      // Guard rail visibility: something is trying to fail an already-paid order.
+      payLog("markPaymentFailed:WARN_overwritingPaid", {
+        paymentId: String(payment._id),
+        from: previousStatus,
+        note: "an already-paid order is being marked failed — check the client flow"
+      });
     }
 
     payment.status = "failed";
     payment.error = error || (reason ? { reason } : payment.error);
     await payment.save();
+    payLog("markPaymentFailed:statusUpdated", {
+      paymentId: String(payment._id),
+      from: previousStatus,
+      to: payment.status
+    });
 
     return successResponse(res, 200, "Payment marked failed", {
       paymentId: payment._id,
@@ -333,48 +535,99 @@ export const markPaymentFailed = async (req, res) => {
 
 export const handleWebhook = async (req, res) => {
   try {
+    const event = req.body?.event;
+    payLog("webhook:request", {
+      event,
+      hasSignatureHeader: !!req.headers["x-razorpay-signature"],
+      hasRawBody: !!req.rawBody
+    });
+
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
     if (!webhookSecret) {
+      payLog("webhook:reject", { reason: "webhook_secret_not_configured" });
       return errorResponse(res, 503, "Razorpay webhook is not configured");
     }
     const signature = req.headers["x-razorpay-signature"];
     const rawBody = req.rawBody || Buffer.from("");
 
     const expected = crypto.createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
-    if (!signature || expected !== signature) {
+    const signatureMatch = !!signature && expected === signature;
+    payLog("webhook:signature", {
+      match: signatureMatch,
+      expected: maskValue(expected),
+      received: maskValue(signature)
+    });
+    if (!signatureMatch) {
+      payLog("webhook:reject", { reason: "invalid_signature" });
       return errorResponse(res, 400, "Invalid webhook signature");
     }
 
-    const event = req.body?.event;
     const paymentEntity = req.body?.payload?.payment?.entity;
     const orderId = paymentEntity?.order_id;
+    payLog("webhook:payload", {
+      event,
+      orderId,
+      razorpayPaymentId: maskValue(paymentEntity?.id),
+      method: paymentEntity?.method,
+      entityStatus: paymentEntity?.status
+    });
 
-    if (!orderId) return successResponse(res, 200, "No order found in webhook");
+    if (!orderId) {
+      payLog("webhook:noop", { reason: "no_order_id" });
+      return successResponse(res, 200, "No order found in webhook");
+    }
 
     const payment = await Payment.findOne({ razorpayOrderId: orderId }).populate("subscription");
-    if (!payment) return successResponse(res, 200, "Payment not tracked");
+    if (!payment) {
+      payLog("webhook:noop", { reason: "payment_not_tracked", orderId });
+      return successResponse(res, 200, "Payment not tracked");
+    }
+    payLog("webhook:paymentFound", {
+      paymentId: String(payment._id),
+      currentStatus: payment.status
+    });
 
     if (event === "payment.captured") {
       if (payment.status !== "paid") {
+        const previousStatus = payment.status;
         payment.status = "paid";
         payment.razorpayPaymentId = paymentEntity?.id;
         payment.method = paymentEntity?.method;
         await payment.save();
+        payLog("webhook:statusUpdated", {
+          paymentId: String(payment._id),
+          from: previousStatus,
+          to: payment.status
+        });
 
         await activateSubscriptionForUser({
           userId: payment.user,
           subscription: payment.subscription,
           paymentId: payment._id
         });
+      } else {
+        payLog("webhook:alreadyPaid", {
+          paymentId: String(payment._id),
+          note: "status already 'paid' — skipping (idempotent)"
+        });
       }
     } else if (event === "payment.failed") {
+      const previousStatus = payment.status;
       payment.status = "failed";
       payment.error = paymentEntity?.error_reason
         ? { reason: paymentEntity.error_reason }
         : payment.error;
       await payment.save();
+      payLog("webhook:statusUpdated", {
+        paymentId: String(payment._id),
+        from: previousStatus,
+        to: payment.status
+      });
+    } else {
+      payLog("webhook:ignoredEvent", { event, paymentId: String(payment._id) });
     }
 
+    payLog("webhook:response", { event, orderId, finalStatus: payment.status });
     return successResponse(res, 200, "Webhook processed");
   } catch (e) {
     logger.error("Webhook handling failed", {
@@ -390,6 +643,11 @@ export const listMyPayments = async (req, res) => {
     const payments = await Payment.find({ user: req.user?._id })
       .populate("subscription")
       .sort({ createdAt: -1 });
+    payLog("listMyPayments:result", {
+      userId: String(req.user?._id || ""),
+      count: payments.length,
+      statuses: payments.map((p) => p.status)
+    });
 
     const data = payments.map((p) => {
       const obj = p?.toObject ? p.toObject() : { ...p };
