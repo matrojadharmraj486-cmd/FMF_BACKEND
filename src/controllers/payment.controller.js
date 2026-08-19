@@ -7,7 +7,7 @@ import Coupon from "../models/Coupon.js";
 import { getRazorpayClient } from "../utils/razorpay.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
-import { sendEmail } from "../utils/email.js";
+import { sendEmailInBackground } from "../utils/email.js";
 import { buildSubscriptionActivatedEmail } from "../utils/emailTemplates.js";
 import { verifyAppleSignedData, decodeAppleSignedDataUnsafe } from "../utils/appleIap.js";
 import { verifyGooglePurchase, isGooglePlayConfigured } from "../utils/googlePlay.js";
@@ -428,13 +428,13 @@ export const verifyPayment = async (req, res) => {
             startDate,
             expiryDate: endDate
           });
-          await sendEmail({
+          sendEmailInBackground({
             to: email,
             subject: tpl.subject,
             text: tpl.text,
             html: tpl.html
           });
-          payLog("verifyPayment:emailSent", { paymentId: String(payment._id), to: maskValue(email) });
+          payLog("verifyPayment:emailQueued", { paymentId: String(payment._id), to: maskValue(email) });
         } else {
           payLog("verifyPayment:emailSkipped", { paymentId: String(payment._id), reason: "no_email" });
         }
@@ -718,8 +718,8 @@ export const verifyIap = async (req, res) => {
             startDate,
             expiryDate: endDate
           });
-          await sendEmail({ to: email, subject: tpl.subject, text: tpl.text, html: tpl.html });
-          payLog("verifyIap:emailSent", { paymentId: String(payment._id), to: maskValue(email) });
+          sendEmailInBackground({ to: email, subject: tpl.subject, text: tpl.text, html: tpl.html });
+          payLog("verifyIap:emailQueued", { paymentId: String(payment._id), to: maskValue(email) });
         }
       } catch (e) {
         payLog("verifyIap:emailFailed", { paymentId: String(payment._id), error: e.message });

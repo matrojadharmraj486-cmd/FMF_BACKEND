@@ -1,7 +1,7 @@
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import { successResponse, errorResponse } from "../utils/response.js";
-import { sendEmail } from "../utils/email.js";
+import { sendEmailInBackground } from "../utils/email.js";
 import { buildWelcomeEmail } from "../utils/emailTemplates.js";
 import { logger } from "../utils/logger.js";
 import { endSession, startSession } from "../utils/session.js";
@@ -78,26 +78,17 @@ export const register = async (req, res) => {
     const token = generateToken(user._id, sessionId);
 
     if (user.email) {
-      try {
-        const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
-        await sendEmail({
-          to: user.email,
-          subject: tpl.subject,
-          text: tpl.text,
-          html: tpl.html
-        });
-        logger.info("Welcome email sent", {
-          userId: user._id,
-          email: user.email
-        });
-      } catch (err) {
-        logger.error("Welcome email failed", {
-          userId: user._id,
-          email: user.email,
-          error: err.message,
-          stack: err.stack
-        });
-      }
+      const tpl = buildWelcomeEmail({ userName: user.fullName || "User" });
+      sendEmailInBackground({
+        to: user.email,
+        subject: tpl.subject,
+        text: tpl.text,
+        html: tpl.html
+      });
+      logger.info("Welcome email queued", {
+        userId: user._id,
+        email: user.email
+      });
     }
 
     return successResponse(res, 201, "Registration successful", {

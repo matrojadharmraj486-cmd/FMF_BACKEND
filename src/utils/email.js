@@ -151,3 +151,18 @@ export const sendEmail = async ({ to, subject, text, html }) => {
 };
 
 export const sendBrevoEmail = sendEmail;
+
+// Fire-and-forget email: sends in the background, never blocks the caller and
+// never throws. Use this for notification emails (payment activation, welcome,
+// support-ticket updates) where the API response must NOT wait on the mail
+// server and a delivery failure must not slow down or break the request.
+// Do NOT use this for OTP / password-reset, where the response must reflect
+// whether the mail was actually sent.
+export const sendEmailInBackground = (opts) => {
+  Promise.resolve()
+    .then(() => sendEmail(opts))
+    .catch(() => {
+      // sendEmail already logs the failure in detail; swallow the rejection
+      // here so a background send can never crash the process.
+    });
+};

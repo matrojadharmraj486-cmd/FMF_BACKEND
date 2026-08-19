@@ -1,7 +1,7 @@
 import SupportTicket, { SUPPORT_TICKET_STATUSES } from "../models/SupportTicket.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { logger } from "../utils/logger.js";
-import { sendEmail } from "../utils/email.js";
+import { sendEmailInBackground } from "../utils/email.js";
 import { buildSupportTicketCreatedEmail, buildSupportTicketUpdatedEmail } from "../utils/emailTemplates.js";
 import User from "../models/User.js";
 
@@ -143,7 +143,7 @@ export const createSupportTicket = async (req, res) => {
         priority: populated.priority
       });
       if (populated.user?.email) {
-        await sendEmail({
+        sendEmailInBackground({
           to: populated.user.email,
           subject: tpl.subject,
           text: tpl.text,
@@ -317,7 +317,7 @@ export const updateSupportTicketAdmin = async (req, res) => {
           note: historyNote
         });
         if (populated.user?.email) {
-          await sendEmail({
+          sendEmailInBackground({
             to: populated.user.email,
             subject: tpl.subject,
             text: tpl.text,
