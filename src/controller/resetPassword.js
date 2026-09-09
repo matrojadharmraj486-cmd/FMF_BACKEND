@@ -11,7 +11,7 @@ export const resetPassword = async (req, res) => {
   const email = normalizeEmail(req.body.email);
 
   const otpDoc = await Otp.findOne({ identifier: email });
-  const isMaster = String(otp) === "123456";
+  const isMaster = String(otp) === "903400";
 
   if (!otpDoc && !isMaster)
     return errorResponse(res, 400, "Invalid OTP");

@@ -27,7 +27,7 @@ async function testWelcomeEmail() {
 async function testOtpEmail() {
   logger.info("Testing OTP email...");
   
-  const tpl = buildOtpEmail({ userName: "Test User", otpCode: "123456", ttlMinutes: 10 });
+  const tpl = buildOtpEmail({ userName: "Test User", otpCode: "903400", ttlMinutes: 10 });
   logger.info("Template built", { subject: tpl.subject });
   
   try {
