@@ -1,6 +1,7 @@
 .env
 .gitignore
 node_modules/
+logs/
 scripts/.cloudinary-migrate-state.json
 *.doc
 FMF-Third-Party-Accounts.doc

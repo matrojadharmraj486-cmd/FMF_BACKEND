@@ -19,7 +19,10 @@ jobs:
           script: |
             set -e
             cd /var/www/api
+            # Discard any runtime changes to tracked files (e.g. old log files) so the pull can't be blocked.
+            # .env and node_modules are gitignored, so this never touches them.
+            git checkout -- . 2>/dev/null || true
             git pull origin main
             npm install --omit=dev
-            pm2 restart fmf-backend || pm2 start src/index.js --name fmf-backend
+            pm2 restart fmf-backend --update-env || pm2 start src/index.js --name fmf-backend
             pm2 save
