@@ -1,6 +1,7 @@
 import { logger } from "./logger.js";
 import dns from "dns";
 import nodemailer from "nodemailer";
+import { postJson } from "./httpClient.js";
 
 const env = (name) => String(process.env[name] || "").trim();
 const hasEnv = (name) => env(name).length > 0;
@@ -35,10 +36,23 @@ const getSmtpConfig = () => {
   return { host, port, family, secure, user, pass, fromEmail, fromName };
 };
 
+// Brevo transactional email over HTTPS (port 443). Preferred on hosts that block
+// outbound SMTP ports (e.g. DigitalOcean droplets), where sendSmtpEmail times out.
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+
+const getBrevoConfig = () => {
+  const apiKey = env("BREVO_API_KEY");
+  const fromEmail = env("EMAIL_FROM") || env("SMTP_FROM") || env("SMTP_USER") || env("EMAIL_USER");
+  const fromName = env("EMAIL_FROM_NAME") || env("SMTP_FROM_NAME") || "Family Medicine Flashback";
+  return { apiKey, fromEmail, fromName };
+};
+
 export const getEmailConfigSummary = () => {
   const config = getSmtpConfig();
+  const useBrevoApi = hasEnv("BREVO_API_KEY");
   return {
-    provider: config.host ? "smtp" : (env("EMAIL_SERVICE") || "gmail"),
+    provider: useBrevoApi ? "brevo-api" : (config.host ? "smtp" : (env("EMAIL_SERVICE") || "gmail")),
+    hasBrevoApiKey: useBrevoApi,
     smtpHost: config.host || null,
     smtpPort: config.host ? config.port : null,
     smtpFamily: config.host ? config.family : null,
@@ -127,16 +141,71 @@ const sendSmtpEmail = async ({ to, subject, text, html }) => {
   }
 };
 
+const sendBrevoApiEmail = async ({ to, subject, text, html }) => {
+  const config = getBrevoConfig();
+  if (!config.apiKey) throw new Error("BREVO_API_KEY is not configured");
+  if (!config.fromEmail) {
+    throw new Error("Sender email is not configured. Set EMAIL_FROM");
+  }
+  if (!html && !text) {
+    throw new Error("Email must have text or html content");
+  }
+
+  logger.info("Brevo API email send starting", {
+    to,
+    from: config.fromEmail,
+    subject
+  });
+
+  const payload = {
+    sender: { name: config.fromName, email: config.fromEmail },
+    to: [{ email: to }],
+    subject,
+    ...(html ? { htmlContent: html } : {}),
+    ...(text ? { textContent: text } : {})
+  };
+
+  const response = await postJson(BREVO_API_URL, payload, {
+    "api-key": config.apiKey,
+    accept: "application/json"
+  });
+
+  if (!response.ok) {
+    logger.error("Brevo API email send failed", {
+      to,
+      subject,
+      status: response.status,
+      response: response.data
+    });
+    const detail =
+      (response.data && (response.data.message || response.data.code)) ||
+      `status ${response.status}`;
+    throw new Error(`Brevo API email failed: ${detail}`);
+  }
+
+  logger.info("Brevo API email send completed", {
+    to,
+    status: response.status,
+    messageId: response.data && response.data.messageId
+  });
+
+  return response.data;
+};
+
 export const sendEmail = async ({ to, subject, text, html }) => {
+  const useBrevoApi = hasEnv("BREVO_API_KEY");
   logger.info("sendEmail called", {
     to,
     subject,
+    provider: useBrevoApi ? "brevo-api" : "smtp",
     hasText: !!text,
     hasHtml: !!html
   });
 
   try {
-    const result = await sendSmtpEmail({ to, subject, text, html });
+    const result = useBrevoApi
+      ? await sendBrevoApiEmail({ to, subject, text, html })
+      : await sendSmtpEmail({ to, subject, text, html });
     logger.info("sendEmail completed successfully", { to, subject });
     return result;
   } catch (err) {
