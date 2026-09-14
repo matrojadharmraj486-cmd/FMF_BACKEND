@@ -689,6 +689,10 @@ export const verifyIap = async (req, res) => {
     if (payment.status !== "paid") {
       const previousStatus = payment.status;
       payment.status = "paid";
+      // The order was created through Razorpay (provider defaults to "razorpay"),
+      // but it was actually paid via the store — record the real source so the
+      // admin panel / invoices show App Store / Google Play instead of Razorpay.
+      payment.provider = platform;
       payment.platform = platform;
       payment.iapProductId = storeInfo.productId || productId || null;
       payment.iapTransactionId = txnId || null;

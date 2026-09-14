@@ -1,5 +1,6 @@
 import Payment, { getNextOrderNumber } from "../models/Payment.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { resolvePaymentMethodLabel } from "../utils/paymentMethod.js";
 import mongoose from "mongoose";
 
 const toNumber = (value) => {
@@ -80,6 +81,10 @@ const formatOrder = (doc, req) => {
     ...obj,
     user,
     orderId: obj._id,
+    // How the user actually paid: "App Store" / "Google Play" / "Razorpay".
+    // Derived from platform first so existing IAP orders (whose stored provider
+    // may still read "razorpay") display correctly without a data migration.
+    paymentMethod: resolvePaymentMethodLabel(obj),
     gatewayOrderId: obj.razorpayOrderId,
     orderNumber: obj.orderNumber,
     orderDate,
