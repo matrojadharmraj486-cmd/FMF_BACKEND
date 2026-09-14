@@ -2,8 +2,8 @@ import User from "../models/User.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { generateToken } from "../utils/jwt.js";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@fmf.local";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@123";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "familymedicineflashback@gmail.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "#@Fmf3705@#";
 const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
